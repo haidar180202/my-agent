@@ -1,0 +1,95 @@
+{
+  "personalInfo": {
+    "name": "Muhammad Haidar Shahab",
+    "title": "Front-End Developer (React.js | UI/UX | Performance)",
+    "location": "Remote (Indonesia / Worldwide)",
+    "phone": "+62 895-3060-9729",
+    "email": "haidarmuhammad312@gmail.com",
+    "linkedin": "https://linkedin.com/in/mhaidarshahab",
+    "github": "https://github.com/haidar180202",
+    "portfolio": "https://haidarshahab.vercel.app"
+  },
+  "summary": "Results-driven Front-End Developer with ±5 years of commercial experience engineering high-performance, responsive web interfaces for enterprise B2B and B2C platforms. Deeply specialized in React.js, TypeScript, modern JavaScript (ES6+), HTML5, and CSS3. Proven track record of architecting reusable frontend components, optimizing web performance (Core Web Vitals), and ensuring flawless cross-browser compatibility. Highly adept at collaborating intimately with UX/UI designers to translate complex wireframes into pixel-perfect, user-friendly digital products. Thrives in remote, asynchronous global environments.",
+  "skills": {
+    "Frontend Engineering": [
+      "React.js",
+      "TypeScript",
+      "JavaScript (ES6+)",
+      "HTML5",
+      "CSS3",
+      "Tailwind CSS",
+      "Component Reusability",
+      "Responsive Design"
+    ],
+    "UI/UX & Collaboration": [
+      "Figma to Code Implementation",
+      "UX Collaboration",
+      "Cross-Browser Compatibility",
+      "Accessibility (a11y)"
+    ],
+    "Performance & Optimization": [
+      "Web Performance Optimization",
+      "DOM Manipulation",
+      "Webpack/Vite",
+      "Lazy Loading",
+      "State Management (Redux)"
+    ],
+    "Tools & Methodologies": [
+      "Git/GitHub CI/CD",
+      "Agile/Scrum",
+      "Jest (Unit Testing)",
+      "Docker",
+      "RESTful API Integration",
+      "Global Remote Work"
+    ]
+  },
+  "experience": [
+    {
+      "role": "Senior Frontend Integration Engineer (UI/UX & Performance)",
+      "company": "Indonesian Financial Group (IFG Life)",
+      "startDate": "Dec 2025",
+      "endDate": "Present",
+      "location": "Remote, Indonesia",
+      "highlights": [
+        "Collaborated intimately with UX/UI designers to translate complex Figma prototypes into pixel-perfect, responsive web interfaces for high-traffic financial applications.",
+        "Architected a comprehensive, enterprise-grade component library using React.js and TypeScript, significantly accelerating the delivery pipeline for cross-functional product teams.",
+        "Spearheaded website performance initiatives, optimizing rendering cycles and state management to ensure seamless, low-latency experiences and robust cross-browser compatibility."
+      ]
+    },
+    {
+      "role": "Lead Front-End Developer (React Architecture)",
+      "company": "PT Bukit Asam Tbk",
+      "startDate": "Sep 2024",
+      "endDate": "Nov 2025",
+      "location": "South Sumatra, Indonesia",
+      "highlights": [
+        "Spearheaded the frontend architecture for 'CISEA v2.0.0', consolidating over 100+ legacy enterprise modules into a unified, user-friendly React.js dashboard.",
+        "Extensively utilized modern DOM manipulation techniques and bundler optimizations to deliver lightning-fast, mobile-responsive web experiences for tens of thousands of active users.",
+        "Enforced rigorous frontend quality assurance testing, resolving intricate cross-browser compatibility issues to ensure universal access across modern web and mobile platforms."
+      ]
+    },
+    {
+      "role": "Front-End Web Developer (Responsive Web Interfaces)",
+      "company": "PT Pupuk Sriwidjaja",
+      "startDate": "Aug 2023",
+      "endDate": "Nov 2024",
+      "location": "Remote / Palembang, Indonesia",
+      "highlights": [
+        "Engineered robust, mobile-responsive web applications by strictly integrating React.js components with complex backend data services, utilizing advanced CSS3 and HTML5 techniques.",
+        "Engaged seamlessly across design and backend engineering sprints in a fast-paced environment, actively contributing to semantic markup and clean coding standards."
+      ]
+    }
+  ],
+  "education": [
+    {
+      "degree": "Bachelor of Engineering (S1) in Electrical & Systems Engineering",
+      "school": "Universitas Yuppentek Indonesia",
+      "notes": "Graduated Cumlaude (GPA > 3.5)"
+    },
+    {
+      "degree": "Associate Degree (D3) in Electrical Engineering",
+      "school": "State Polytechnic of Sriwijaya",
+      "notes": "Graduated Cumlaude (GPA > 3.5)"
+    }
+  ]
+}
