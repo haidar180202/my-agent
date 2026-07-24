@@ -1,95 +1,205 @@
 {
   "personalInfo": {
     "name": "Muhammad Haidar Shahab",
-    "title": "Front-End Developer (React.js | UI/UX | Performance)",
-    "location": "Remote (Indonesia / Worldwide)",
+    "title": "Frontend / Full Stack Developer | React, TypeScript, Next.js, AI Integrations",
+    "location": "Jakarta / Indonesia (Remote Worldwide)",
     "phone": "+62 895-3060-9729",
     "email": "haidarmuhammad312@gmail.com",
     "linkedin": "https://linkedin.com/in/mhaidarshahab",
-    "github": "https://github.com/haidar180202",
     "portfolio": "https://haidarshahab.vercel.app"
   },
-  "summary": "Results-driven Front-End Developer with ±5 years of commercial experience engineering high-performance, responsive web interfaces for enterprise B2B and B2C platforms. Deeply specialized in React.js, TypeScript, modern JavaScript (ES6+), HTML5, and CSS3. Proven track record of architecting reusable frontend components, optimizing web performance (Core Web Vitals), and ensuring flawless cross-browser compatibility. Highly adept at collaborating intimately with UX/UI designers to translate complex wireframes into pixel-perfect, user-friendly digital products. Thrives in remote, asynchronous global environments.",
+  "summary": "End-to-end Full-Stack Builder with ±5 years of commercial experience shipping scalable, high-performing web applications. Specialized in building robust frontend interfaces using React, Next.js, and TypeScript, while engineering efficient backends using Node.js, NestJS, and Python (FastAPI). Proficient in bridging infrastructure gaps with modern DevOps pipelines (Docker, CI/CD) and deeply integrating AI engineering tools (Ollama, Gemini, OpenAI) throughout the development workflow. Combines a strong foundation in Electrical Engineering with a product-first mindset to ship impactful, algorithmically optimized user experiences.",
   "skills": {
-    "Frontend Engineering": [
-      "React.js",
+    "Frontend Development": [
+      "React",
+      "Next.js",
+      "React Native",
       "TypeScript",
       "JavaScript (ES6+)",
       "HTML5",
       "CSS3",
       "Tailwind CSS",
-      "Component Reusability",
-      "Responsive Design"
+      "Bootstrap",
+      "Svelte/SvelteKit (Learning)",
+      "Angular 15+",
+      "Ionic 7+"
     ],
-    "UI/UX & Collaboration": [
-      "Figma to Code Implementation",
-      "UX Collaboration",
-      "Cross-Browser Compatibility",
-      "Accessibility (a11y)"
+    "Backend Development": [
+      "Node.js",
+      "Express",
+      "NestJS",
+      "Python (FastAPI)",
+      "Laravel",
+      "PHP"
     ],
-    "Performance & Optimization": [
-      "Web Performance Optimization",
-      "DOM Manipulation",
-      "Webpack/Vite",
-      "Lazy Loading",
-      "State Management (Redux)"
+    "Database Management": [
+      "MySQL",
+      "MongoDB",
+      "PostgreSQL",
+      "Redis",
+      "Firebase (Firestore, Realtime DB, Auth)",
+      "SQLite"
     ],
-    "Tools & Methodologies": [
-      "Git/GitHub CI/CD",
-      "Agile/Scrum",
-      "Jest (Unit Testing)",
-      "Docker",
-      "RESTful API Integration",
-      "Global Remote Work"
+    "AI Engineering & Tools": [
+      "Multi-Agent Systems",
+      "Prompt Engineering",
+      "Ollama (Local LLMs)",
+      "Gemini API",
+      "OpenAI API",
+      "Qwen",
+      "Cursor",
+      "Claude Code",
+      "GitHub Copilot"
+    ],
+    "Cloud & DevOps": [
+      "Docker Containerization",
+      "GitLab CI/CD",
+      "GitHub Actions",
+      "AWS Services",
+      "Firebase Hosting",
+      "DevSecOps mindset"
+    ],
+    "Security & Auth": [
+      "Firebase Auth / JWT",
+      "Role-Based Access Control (RBAC)",
+      "Secure RESTful API Consumption"
     ]
   },
   "experience": [
     {
-      "role": "Senior Frontend Integration Engineer (UI/UX & Performance)",
-      "company": "Indonesian Financial Group (IFG Life)",
+      "role": "Frontend Developer",
+      "company": "IFG (Indonesian Financial Group)",
       "startDate": "Dec 2025",
       "endDate": "Present",
-      "location": "Remote, Indonesia",
+      "location": "Jakarta / Indonesia",
       "highlights": [
-        "Collaborated intimately with UX/UI designers to translate complex Figma prototypes into pixel-perfect, responsive web interfaces for high-traffic financial applications.",
-        "Architected a comprehensive, enterprise-grade component library using React.js and TypeScript, significantly accelerating the delivery pipeline for cross-functional product teams.",
-        "Spearheaded website performance initiatives, optimizing rendering cycles and state management to ensure seamless, low-latency experiences and robust cross-browser compatibility."
+        "Architected and implemented high-performance user interfaces for financial web applications using React and TypeScript to ensure enterprise-grade type safety.",
+        "Collaborated with cross-functional teams to translate complex business requirements and Figma designs into scalable, responsive web components.",
+        "Optimized application performance and maintainability by adhering to modern clean coding standards and integrating RESTful APIs.",
+        "Researched and integrated innovative technologies to enhance system reliability and user experience within the Indonesian Financial Group ecosystem."
       ]
     },
     {
-      "role": "Lead Front-End Developer (React Architecture)",
+      "role": "Application Development Associate - Lead Internal MII Team",
       "company": "PT Bukit Asam Tbk",
       "startDate": "Sep 2024",
       "endDate": "Nov 2025",
       "location": "South Sumatra, Indonesia",
       "highlights": [
-        "Spearheaded the frontend architecture for 'CISEA v2.0.0', consolidating over 100+ legacy enterprise modules into a unified, user-friendly React.js dashboard.",
-        "Extensively utilized modern DOM manipulation techniques and bundler optimizations to deliver lightning-fast, mobile-responsive web experiences for tens of thousands of active users.",
-        "Enforced rigorous frontend quality assurance testing, resolving intricate cross-browser compatibility issues to ensure universal access across modern web and mobile platforms."
+        "Led the internal development team in architecting full-stack solutions, utilizing NestJS and TypeScript for robust backend management.",
+        "Engineered complex web systems with a focus on seamless user interfaces and attractive, functional styling to meet high-level stakeholder requirements.",
+        "Developed and managed efficient database schemas using SQLite, ensuring data integrity for internal application systems.",
+        "Spearheaded the transition to modern frontend frameworks, improving development speed and application responsiveness."
       ]
     },
     {
-      "role": "Front-End Web Developer (Responsive Web Interfaces)",
+      "role": "Application Engineering (Electronics Engineer) - Freelance",
+      "company": "Freelance",
+      "startDate": "Dec 2023",
+      "endDate": "Jul 2024",
+      "location": "South Sumatra, Indonesia",
+      "highlights": [
+        "Designed and integrated complex hardware-software systems, bridging electronic device controls with custom software applications.",
+        "Engineered firmware and control logic for microcontrollers, ensuring precise hardware operation.",
+        "Developed and simulated power supply control systems, optimizing device performance and reliability.",
+        "Implemented IoT solutions using microcontroller architectures to enable remote system monitoring and connectivity."
+      ]
+    },
+    {
+      "role": "Fullstack Developer",
       "company": "PT Pupuk Sriwidjaja",
       "startDate": "Aug 2023",
       "endDate": "Nov 2024",
-      "location": "Remote / Palembang, Indonesia",
+      "location": "Palembang / Remote",
       "highlights": [
-        "Engineered robust, mobile-responsive web applications by strictly integrating React.js components with complex backend data services, utilizing advanced CSS3 and HTML5 techniques.",
-        "Engaged seamlessly across design and backend engineering sprints in a fast-paced environment, actively contributing to semantic markup and clean coding standards."
+        "Developed and delivered high-performance, production-ready web applications by integrating React.js with robust backend services.",
+        "Designed and implemented relational database systems using ERD schemas to ensure structured and scalable data management.",
+        "Architected responsive, stylized web interfaces that strictly adhered to client requirements and design specifications.",
+        "Engineered backend systems using Laravel and SQLite, ensuring orderly and high-performance application logic."
+      ]
+    },
+    {
+      "role": "Fullstack Developer",
+      "company": "iSmart Education Center",
+      "startDate": "Jun 2023",
+      "endDate": "Dec 2023",
+      "location": "Palembang",
+      "highlights": [
+        "Engineered and deployed comprehensive web applications, including modules for online learning, employee attendance, and class scheduling.",
+        "Developed a custom CMS from scratch using the MERN stack (MongoDB, Express, React, Node.js), ensuring high performance and unique data schema design.",
+        "Built interactive data visualizations by integrating D3.js with React components for enhanced analytical user interfaces.",
+        "Maintained and optimized frontend performance using React.js and Redux for complex state management."
+      ]
+    },
+    {
+      "role": "Freelance Front End Developer / Application Developer",
+      "company": "Freelance",
+      "startDate": "Jul 2022",
+      "endDate": "Oct 2023",
+      "location": "Palembang",
+      "highlights": [
+        "Developed full-stack web and mobile solutions using React.js and React Native, delivering customized user interfaces based on client-specific needs.",
+        "Collaborated with stakeholders to define application strategy, design schemas, and implement scalable system architectures."
+      ]
+    },
+    {
+      "role": "Fullstack Developer",
+      "company": "Investree",
+      "startDate": "Jun 2022",
+      "endDate": "Jul 2022",
+      "location": "Remote / Indonesia",
+      "highlights": [
+        "Engineered robust web applications by translating complex user requirements into high-performance, production-ready interfaces.",
+        "Architected structured database systems using ERD schemas and SQL/SQLite to ensure efficient data management and application logic.",
+        "Developed scalable web systems using Laravel framework, focusing on clean code practices and orderly application architecture."
+      ]
+    },
+    {
+      "role": "Frontend Developer",
+      "company": "Syneps Academy",
+      "startDate": "Aug 2021",
+      "endDate": "Jan 2022",
+      "location": "Palembang",
+      "highlights": [
+        "Designed and maintained user-facing interfaces using React.js and React Native, ensuring cross-platform compatibility and high-quality user experience.",
+        "Integrated modern styling frameworks including Bootstrap and Tailwind CSS to build highly responsive and aesthetic layouts.",
+        "Applied full-stack development foundations by implementing PHP and JavaScript technologies in various application systems."
+      ]
+    }
+  ],
+  "projects": [
+    {
+      "name": "Multi-Agent AI YouTube Automation Engine",
+      "date": "03/2026 - Present",
+      "highlights": [
+        "Architected and engineered an end-to-end automated content creation system that handles ideation, script-writing, and video structuring for educational content.",
+        "Implemented a resilient Multi-Agent Architecture leveraging Node.js/JavaScript, integrating multiple LLMs including Gemini, ChatGPT, and Ollama as the core engine.",
+        "Designed a dynamic API switching and fallback logic to optimize resource utilization and maintain system uptime between free-tier cloud APIs and local Ollama instances.",
+        "Integrated intelligent web scraping and search retrieval mechanisms using Qwen to continuously inject up-to-date educational materials and context into the agent workflow."
+      ]
+    },
+    {
+      "name": "AI-Powered Geospatial Recommendation Engine (Local Assistant)",
+      "date": "2026",
+      "highlights": [
+        "Developed a product-focused, Google Assistant-style conversational agent designed to provide instant, structured location and food recommendations based on user proximity.",
+        "Integrated local LLMs (Ollama) with geospatial data structures to process natural language queries and return real-time coordinates, ratings, and vendor data points.",
+        "Focused on a ticketless, product-first implementation, ensuring low-latency responses by optimizing LLM prompt engineering and context windows for local deployment."
       ]
     }
   ],
   "education": [
     {
-      "degree": "Bachelor of Engineering (S1) in Electrical & Systems Engineering",
-      "school": "Universitas Yuppentek Indonesia",
-      "notes": "Graduated Cumlaude (GPA > 3.5)"
+      "degree": "Electrical Engineer (S.T)",
+      "school": "Yuppentek Indonesian University",
+      "startDate": "Aug 2024",
+      "endDate": "Aug 2026"
     },
     {
-      "degree": "Associate Degree (D3) in Electrical Engineering",
-      "school": "State Polytechnic of Sriwijaya",
-      "notes": "Graduated Cumlaude (GPA > 3.5)"
+      "degree": "Electronics Engineer (A.md.T)",
+      "school": "Sriwijaya State Polytechnic",
+      "startDate": "Aug 2021",
+      "endDate": "Aug 2024"
     }
   ]
 }
