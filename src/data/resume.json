@@ -1,0 +1,75 @@
+{
+  "personalInfo": {
+    "name": "MUHAMMAD HAIDAR SHAHAB",
+    "location": "Jakarta, ID (Remote)",
+    "phone": "+62 895-3060-9729",
+    "email": "haidarmuhammad312@gmail.com",
+    "linkedin": "linkedin.com/in/mhaidarshahab",
+    "portfolio": "haidarshahab.vercel.app"
+  },
+  "summary": "Full Stack Software Engineer with 5 years of commercial experience designing, building, and scaling end-to-end web experiences for major enterprise conglomerates (Indonesian Financial Group, PT Bukit Asam). Expert in bridging modern, highly interactive UI frameworks (React, Next.js, TypeScript) with robust backend services (Python, Node.js, GraphQL, REST APIs). Deeply experienced in utilizing GenAI and AI-assisted engineering tools (Cursor, Copilot, LLM Agents) to accelerate workflows and uphold rigorous code quality.",
+  "skills": [
+    "TypeScript", "JavaScript (ES6+)", "React.js", "Next.js", "Vue.js", "Node.js", "Python", 
+    "GraphQL", "REST APIs", "SQL", "PostgreSQL", "MongoDB", "Firebase", "Bun", "Tailwind CSS", 
+    "Docker", "CI/CD", "Jest", "GenAI", "LLMs (Ollama, Gemini)", "Multi-Agent Systems", "Prompt Engineering"
+  ],
+  "experience": [
+    {
+      "company": "IFG (INDONESIAN FINANCIAL GROUP)",
+      "role": "Software Engineer",
+      "date": "December 2025 - Present",
+      "location": "Jakarta, Indonesia (Remote)",
+      "bullets": [
+        "Architect and deploy complex internal and user-facing web experiences for the Epics Portal Assums Module, connecting highly interactive React interfaces with secure backend services.",
+        "Partner closely with Product and cross-functional partners to clarify scope, navigate solution ambiguity, and translate complex data requirements into scalable code.",
+        "Uphold stringent engineering standards by utilizing testing frameworks and writing automated test suites to ensure system reliability across distributed nodes."
+      ]
+    },
+    {
+      "company": "PT BUKIT ASAM (PERSERO) TBK",
+      "role": "Lead Software Engineer",
+      "date": "September 2024 - November 2025",
+      "location": "South Sumatra, Indonesia",
+      "bullets": [
+        "Spearheaded the massive digital consolidation of 20+ disparate legacy applications into a unified, high-performing portal utilizing Next.js, Node.js, and robust REST APIs.",
+        "Collaborated with distributed engineering teams to integrate shared platforms, building and consuming robust APIs capable of handling heavy enterprise data loads.",
+        "Participated in incident reviews and on-call troubleshooting, continuously iterating on frontend and backend engineering standards to elevate overall team productivity."
+      ]
+    },
+    {
+      "company": "PT PUPUK SRIWIDJAJA (PUSRI)",
+      "role": "Software Engineer",
+      "date": "August 2023 - November 2024",
+      "location": "Palembang, Indonesia",
+      "bullets": [
+        "Engineered full-stack web applications to digitize manufacturing workflows, delivering fast, accessible, and maintainable interfaces driven by complex backend logic.",
+        "Implemented robust relational database schemas (SQL) and stored procedures to handle inventory, production tracking, and automated reporting systems.",
+        "Developed data-heavy dashboard interfaces and backend logic to monitor operational metrics, collaborating with on-site stakeholders to inform product decisions."
+      ]
+    }
+  ],
+  "projects": [
+    {
+      "name": "MULTI-AGENT AI YOUTUBE ENGINE & GEOSPATIAL ASSISTANT",
+      "date": "2026 - Present",
+      "type": "Personal AI Systems R&D",
+      "bullets": [
+        "Architected a fully automated content creation system leveraging a Multi-Agent LLM architecture (Ollama, Gemini APIs) to orchestrate complex reasoning, tool usage, and digital content distribution.",
+        "Engineered fallback mechanisms to recover from failed generations, ensuring production-grade reliability rather than just a fragile demo.",
+        "Extensively utilize AI engineering tools to accelerate development workflows, applying sound judgment to validate AI outputs and architect highly testable code schemas."
+      ]
+    }
+  ],
+  "education": [
+    {
+      "degree": "Bachelor of Engineering (S.T. / S1) in ELECTRICAL ENGINEERING",
+      "institution": "Universitas Yuppentek Indonesia",
+      "notes": "Cumlaude / Honors | GPA > 3.5 / 4.00"
+    },
+    {
+      "degree": "Associate Degree (A.md.T / D3) in ELECTRICAL ENGINEERING",
+      "institution": "State Polytechnic of Sriwijaya (Politeknik Negeri Sriwijaya)",
+      "notes": "Cumlaude / Honors | GPA > 3.5 / 4.00"
+    }
+  ]
+}
