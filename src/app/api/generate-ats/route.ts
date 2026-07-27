@@ -101,7 +101,7 @@ export async function POST(req: Request) {
     }
 
     // 1. Read and Decrypt the master CV data
-    const dataPath = path.join(process.cwd(), "src", "data", "resume.enc");
+    const dataPath = path.join(process.cwd(), "data", "master_cv.enc");
     const encryptedData = await fs.readFile(dataPath, "utf-8");
 
     // Decryption logic

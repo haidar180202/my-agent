@@ -3,16 +3,16 @@ const fs = require("fs");
 const path = require("path");
 
 const algorithm = "aes-256-cbc";
-const password = process.env.RESUME_PASSWORD;
+const password = process.env.RESUME_PASSWORD || 'haidar$68';
 // Use scrypt to create a 32-byte key from the password
 const key = crypto.scryptSync(password, "salt", 32);
 const iv = crypto.randomBytes(16);
 
-const inputPath = path.join(__dirname, "../src/data/resume.json");
-const outputPath = path.join(__dirname, "../src/data/resume.enc");
+const inputPath = path.join(__dirname, "../data/master_cv.json");
+const outputPath = path.join(__dirname, "../data/master_cv.enc");
 
 if (!fs.existsSync(inputPath)) {
-  console.error("Error: resume.json not found!");
+  console.error("Error: master_cv.json not found!");
   process.exit(1);
 }
 
@@ -27,4 +27,4 @@ encrypted += cipher.final("hex");
 const finalOutput = iv.toString("hex") + ":" + encrypted;
 
 fs.writeFileSync(outputPath, finalOutput);
-console.log("Success! resume.json encrypted to resume.enc");
+console.log("Success! master_cv.json encrypted to master_cv.enc");
