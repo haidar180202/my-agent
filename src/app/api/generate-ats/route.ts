@@ -160,7 +160,7 @@ Return ONLY a raw JSON object matching the exact structure of the MASTER RESUME,
     console.log("Launching Puppeteer...");
     const browser = await puppeteer.launch({ headless: true });
     const page = await browser.newPage();
-    await page.setContent(htmlContent, { waitUntil: "networkidle0" });
+    await page.setContent(htmlContent, { waitUntil: "load" });
 
     console.log("Rendering PDF...");
     const pdfBuffer = await page.pdf({
