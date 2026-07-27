@@ -100,9 +100,25 @@ export async function POST(req: Request) {
       );
     }
 
-    // 1. Read the master CV data
-    const dataPath = path.join(process.cwd(), "src", "data", "resume.json");
-    const masterCvRaw = await fs.readFile(dataPath, "utf-8");
+    // 1. Read and Decrypt the master CV data
+    const dataPath = path.join(process.cwd(), "src", "data", "resume.enc");
+    const encryptedData = await fs.readFile(dataPath, "utf-8");
+
+    // Decryption logic
+    const crypto = require('crypto');
+    const parts = encryptedData.split(':');
+    const iv = Buffer.from(parts.shift(), 'hex');
+    const encryptedText = parts.join(':');
+
+    // Use password from env, fallback to default provided by user
+    const password = process.env.RESUME_PASSWORD || 'haidar$68';
+    const key = crypto.scryptSync(password, 'salt', 32);
+    const decipher = crypto.createDecipheriv('aes-256-cbc', key, iv);
+
+    let decrypted = decipher.update(encryptedText, 'hex', 'utf8');
+    decrypted += decipher.final('utf8');
+
+    const masterCvRaw = decrypted;
 
     // 2. Construct the Prompt for Gemini
     console.log(`Analyzing JD for role: ${targetRole}`);
