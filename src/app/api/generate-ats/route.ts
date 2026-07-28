@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import fs from "fs/promises";
 import path from "path";
 import { GoogleGenAI } from "@google/genai";
+import crypto from "crypto";
 import puppeteer from "puppeteer";
 
 // Initialize Gemini Client
@@ -105,18 +106,23 @@ export async function POST(req: Request) {
     const encryptedData = await fs.readFile(dataPath, "utf-8");
 
     // Decryption logic
-    const crypto = require('crypto');
-    const parts = encryptedData.split(':');
-    const iv = Buffer.from(parts.shift(), 'hex');
-    const encryptedText = parts.join(':');
+    const parts = encryptedData.split(":");
+    const ivHex = parts.shift();
+
+    if (!ivHex) {
+      throw new Error("Invalid encrypted data format");
+    }
+
+    const iv = Buffer.from(ivHex, "hex");
+    const encryptedText = parts.join(":");
 
     // Use password from env, fallback to default provided by user
-    const password = process.env.RESUME_PASSWORD || 'haidar$68';
-    const key = crypto.scryptSync(password, 'salt', 32);
-    const decipher = crypto.createDecipheriv('aes-256-cbc', key, iv);
+    const password = process.env.RESUME_PASSWORD || "haidar$68";
+    const key = crypto.scryptSync(password, "salt", 32);
+    const decipher = crypto.createDecipheriv("aes-256-cbc", key, iv);
 
-    let decrypted = decipher.update(encryptedText, 'hex', 'utf8');
-    decrypted += decipher.final('utf8');
+    let decrypted = decipher.update(encryptedText, "hex", "utf8");
+    decrypted += decipher.final("utf8");
 
     const masterCvRaw = decrypted;
 
