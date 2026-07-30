@@ -89,6 +89,44 @@ function generateHtml(resumeData: any) {
   `;
 }
 
+// Cover Letter HTML Generator Helper
+function generateCoverLetterHtml(resumeData: any, coverLetterText: string) {
+  const formattedText = coverLetterText.replace(/\n/g, "<br/>");
+  return `
+  <!DOCTYPE html>
+  <html lang="en">
+  <head>
+      <meta charset="UTF-8">
+      <style>
+          @page { size: A4; margin: 0; }
+          body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; font-size: 10pt; line-height: 1.5; color: #333; margin: 0; padding: 25mm 20mm; }
+          .date { margin-bottom: 20px; }
+          .sender-info { font-weight: bold; margin-bottom: 20px; line-height: 1.4; }
+          .recipient-info { margin-bottom: 20px; }
+          .body { text-align: justify; }
+      </style>
+  </head>
+  <body>
+      <div class="sender-info">
+          ${resumeData.personalInfo?.name || "MUHAMMAD HAIDAR SHAHAB"}<br/>
+          ${resumeData.personalInfo?.location}<br/>
+          ${resumeData.personalInfo?.phone} | ${resumeData.personalInfo?.email}
+      </div>
+      
+      <div class="date">${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</div>
+      
+      <div class="recipient-info">
+          <strong>To the Hiring Team / Recruiter</strong>
+      </div>
+      
+      <div class="body">
+          ${formattedText}
+      </div>
+  </body>
+  </html>
+  `;
+}
+
 export async function POST(req: Request) {
   try {
     const body = await req.json();
@@ -129,9 +167,12 @@ export async function POST(req: Request) {
     // 2. Construct the Prompt for Gemini
     console.log(`Analyzing JD for role: ${targetRole}`);
     const prompt = `
-You are an expert Executive ATS Resume Writer.
+You are an expert Executive ATS Resume and Cover Letter Writer.
 I will provide you with a candidate's Master Resume (in JSON) and a Job Description.
-Your task is to tailor the candidate's professional summary and experience bullet points to perfectly match the keywords and requirements of the Job Description.
+
+Your task is to:
+1. Tailor the candidate's professional summary and experience bullet points to perfectly match the keywords and requirements of the Job Description.
+2. Write a highly compelling, professional, and targeted Cover Letter (1 page) that directly addresses the Hiring Team, highlighting the candidate's achievements and fit for the role.
 
 TARGET ROLE: ${targetRole}
 JOB DESCRIPTION:
@@ -140,12 +181,19 @@ ${jobDescription}
 MASTER RESUME (JSON):
 ${masterCvRaw}
 
-Return ONLY a raw JSON object matching the exact structure of the MASTER RESUME, but with the "summary" and "experience.bullets" tailored to highlight the most relevant skills for the job. Do NOT wrap the response in markdown blocks (e.g., \`\`\`json). Just the raw JSON string.
+Return ONLY a raw JSON object with the following exact keys:
+{
+  "tailoredResume": <tailored resume object maintaining the exact structure of the MASTER RESUME JSON>,
+  "coverLetter": "<a tailored cover letter in plain text, using \n for newlines>"
+}
+
+Do NOT wrap the response in markdown blocks (e.g., \`\`\`json). Just the raw JSON string.
 `;
 
     // 3. Call Gemini API
     console.log("Calling Gemini API...");
     let tailoredResume = JSON.parse(masterCvRaw); // Fallback to original
+    let coverLetterText = `Dear Hiring Team,\n\nI am writing to express my interest in the ${targetRole} position. My background in software engineering makes me a strong fit for your team.\n\nBest regards,\n\nMuhammad Haidar Shahab`; // Fallback
 
     if (process.env.GEMINI_API_KEY) {
       try {
@@ -161,8 +209,11 @@ Return ONLY a raw JSON object matching the exact structure of the MASTER RESUME,
           .replace(/```json/g, "")
           .replace(/```/g, "")
           .trim();
-        tailoredResume = JSON.parse(cleanJsonString);
-        console.log("Successfully tailored resume using Gemini!");
+          
+        const responseObj = JSON.parse(cleanJsonString);
+        tailoredResume = responseObj.tailoredResume;
+        coverLetterText = responseObj.coverLetter;
+        console.log("Successfully tailored resume and generated cover letter using Gemini!");
       } catch (aiErr) {
         console.error(
           "Gemini AI Error. Falling back to original resume.",
@@ -175,33 +226,49 @@ Return ONLY a raw JSON object matching the exact structure of the MASTER RESUME,
       );
     }
 
-    // 4. Generate HTML and convert to PDF using Puppeteer
-    console.log("Generating HTML template...");
-    const htmlContent = generateHtml(tailoredResume);
+    // 4. Generate HTML files
+    console.log("Generating HTML templates...");
+    const cvHtmlContent = generateHtml(tailoredResume);
+    const coverLetterHtmlContent = generateCoverLetterHtml(tailoredResume, coverLetterText);
 
     console.log("Launching Puppeteer...");
     const browser = await puppeteer.launch({ headless: true });
-    const page = await browser.newPage();
-    await page.setContent(htmlContent, { waitUntil: "load" });
+    
+    // Render CV PDF
+    console.log("Rendering CV PDF...");
+    const cvPage = await browser.newPage();
+    await cvPage.setContent(cvHtmlContent, { waitUntil: "load" });
+    const cvPdfBuffer = await cvPage.pdf({
+      format: "A4",
+      printBackground: true,
+      margin: { top: "0", right: "0", bottom: "0", left: "0" },
+    });
 
-    console.log("Rendering PDF...");
-    const pdfBuffer = await page.pdf({
+    // Render Cover Letter PDF
+    console.log("Rendering Cover Letter PDF...");
+    const clPage = await browser.newPage();
+    await clPage.setContent(coverLetterHtmlContent, { waitUntil: "load" });
+    const clPdfBuffer = await clPage.pdf({
       format: "A4",
       printBackground: true,
       margin: { top: "0", right: "0", bottom: "0", left: "0" },
     });
 
     await browser.close();
-    console.log("PDF successfully generated!");
+    console.log("PDFs successfully generated!");
 
-    // Convert buffer to base64 Data URI
-    const base64Pdf = Buffer.from(pdfBuffer).toString("base64");
-    const cvUrl = `data:application/pdf;base64,${base64Pdf}`;
+    // Convert buffers to base64 Data URIs
+    const cvBase64 = Buffer.from(cvPdfBuffer).toString("base64");
+    const cvUrl = `data:application/pdf;base64,${cvBase64}`;
 
-    // 5. Return actual PDF URL to frontend
+    const clBase64 = Buffer.from(clPdfBuffer).toString("base64");
+    const coverLetterUrl = `data:application/pdf;base64,${clBase64}`;
+
+    // 5. Return actual PDF URLs to frontend
     return NextResponse.json({
       success: true,
       cvUrl: cvUrl,
+      coverLetterUrl: coverLetterUrl,
     });
   } catch (error: SyntaxError | Error | unknown) {
     console.error("API Error:", error);
