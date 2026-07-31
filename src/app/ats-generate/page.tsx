@@ -9,6 +9,7 @@ export default function AtsGeneratePage() {
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState("");
   const [result, setResult] = useState<{ cvUrl?: string; coverLetterUrl?: string } | null>(null);
+  const [activeTab, setActiveTab] = useState<"cv" | "coverLetter">("cv");
 
   const handleGenerate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -110,27 +111,59 @@ export default function AtsGeneratePage() {
         </form>
 
         {result && (
-          <div className="flex flex-col gap-4 bg-green-50 dark:bg-green-900/20 p-8 rounded-2xl border border-green-200 dark:border-green-800">
-            <h2 className="text-xl font-bold text-green-800 dark:text-green-300">✅ Generation Complete</h2>
-            <div className="flex flex-col sm:flex-row gap-4 mt-2">
-              {result.cvUrl && (
-                <a
-                  href={result.cvUrl}
-                  download="Tailored_CV.pdf"
-                  className="px-5 py-2.5 rounded-lg bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 font-medium hover:bg-zinc-50 dark:hover:bg-zinc-700 transition-colors flex items-center gap-2"
+          <div className="flex flex-col gap-6 bg-white dark:bg-zinc-900 p-8 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-sm">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-zinc-200 dark:border-zinc-800 pb-5">
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setActiveTab("cv")}
+                  className={`px-4 py-2 rounded-lg font-medium text-sm transition-colors ${
+                    activeTab === "cv"
+                      ? "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300"
+                      : "text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
+                  }`}
                 >
-                  📄 Download CV (PDF)
-                </a>
-              )}
-              {result.coverLetterUrl && (
-                <a
-                  href={result.coverLetterUrl}
-                  download="Tailored_CoverLetter.pdf"
-                  className="px-5 py-2.5 rounded-lg bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 font-medium hover:bg-zinc-50 dark:hover:bg-zinc-700 transition-colors flex items-center gap-2"
+                  📄 CV Document
+                </button>
+                <button
+                  onClick={() => setActiveTab("coverLetter")}
+                  className={`px-4 py-2 rounded-lg font-medium text-sm transition-colors ${
+                    activeTab === "coverLetter"
+                      ? "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300"
+                      : "text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
+                  }`}
                 >
-                  ✉️ Download Cover Letter (PDF)
-                </a>
-              )}
+                  ✉️ Cover Letter
+                </button>
+              </div>
+
+              <div className="flex gap-2">
+                {activeTab === "cv" && result.cvUrl && (
+                  <a
+                    href={result.cvUrl}
+                    download="Tailored_CV.pdf"
+                    className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-medium text-sm transition-colors flex items-center gap-1.5"
+                  >
+                    📥 Download CV
+                  </a>
+                )}
+                {activeTab === "coverLetter" && result.coverLetterUrl && (
+                  <a
+                    href={result.coverLetterUrl}
+                    download="Tailored_CoverLetter.pdf"
+                    className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-medium text-sm transition-colors flex items-center gap-1.5"
+                  >
+                    📥 Download Letter
+                  </a>
+                )}
+              </div>
+            </div>
+
+            <div className="w-full h-[650px] border border-zinc-200 dark:border-zinc-800 rounded-lg overflow-hidden bg-zinc-100 dark:bg-zinc-950">
+              <iframe
+                src={activeTab === "cv" ? result.cvUrl : result.coverLetterUrl}
+                className="w-full h-full border-none"
+                title="Document Preview"
+              />
             </div>
           </div>
         )}
