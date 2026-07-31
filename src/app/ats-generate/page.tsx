@@ -5,6 +5,7 @@ import { useState } from "react";
 export default function AtsGeneratePage() {
   const [jobDescription, setJobDescription] = useState("");
   const [targetRole, setTargetRole] = useState("");
+  const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState("");
   const [result, setResult] = useState<{ cvUrl?: string; coverLetterUrl?: string } | null>(null);
@@ -19,11 +20,12 @@ export default function AtsGeneratePage() {
       const res = await fetch("/api/generate-ats", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ jobDescription, targetRole }),
+        body: JSON.stringify({ jobDescription, targetRole, password }),
       });
 
       if (!res.ok) {
-        throw new Error("Failed to generate documents");
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.error || "Failed to generate documents");
       }
 
       setStatus("Generating PDFs...");
@@ -44,11 +46,24 @@ export default function AtsGeneratePage() {
         <header className="flex flex-col gap-2">
           <h1 className="text-4xl font-bold tracking-tight">ATS Generator</h1>
           <p className="text-lg text-zinc-600 dark:text-zinc-400">
-            Paste a Job Description to automatically tailor your Master CV and generate ATS-friendly PDFs.
+            Paste a Job Description to tailor your Master CV and generate ATS-friendly PDFs.
           </p>
         </header>
 
         <form onSubmit={handleGenerate} className="flex flex-col gap-6 bg-white dark:bg-zinc-900 p-8 rounded-2xl shadow-sm border border-zinc-200 dark:border-zinc-800">
+          <div className="flex flex-col gap-2">
+            <label htmlFor="password" className="font-medium text-sm">Decryption Password</label>
+            <input
+              id="password"
+              type="password"
+              required
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="p-3 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-transparent focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+              placeholder="Enter password to decrypt your Master CV"
+            />
+          </div>
+
           <div className="flex flex-col gap-2">
             <label htmlFor="targetRole" className="font-medium text-sm">Target Role (e.g. Senior Frontend Engineer)</label>
             <input
@@ -77,7 +92,7 @@ export default function AtsGeneratePage() {
 
           <button
             type="submit"
-            disabled={loading || !jobDescription || !targetRole}
+            disabled={loading || !jobDescription || !targetRole || !password}
             className="w-full sm:w-auto self-start px-6 py-3 rounded-full bg-blue-600 hover:bg-blue-700 text-white font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
           >
             {loading ? (

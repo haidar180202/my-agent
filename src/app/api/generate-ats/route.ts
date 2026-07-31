@@ -130,11 +130,11 @@ function generateCoverLetterHtml(resumeData: any, coverLetterText: string) {
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { jobDescription, targetRole } = body;
+    const { jobDescription, targetRole, password } = body;
 
-    if (!jobDescription || !targetRole) {
+    if (!jobDescription || !targetRole || !password) {
       return NextResponse.json(
-        { error: "Job description and target role are required" },
+        { error: "Job description, target role, and decryption password are required" },
         { status: 400 },
       );
     }
@@ -154,15 +154,21 @@ export async function POST(req: Request) {
     const iv = Buffer.from(ivHex, "hex");
     const encryptedText = parts.join(":");
 
-    // Use password from env, fallback to default provided by user
-    const password = process.env.RESUME_PASSWORD || "haidar$68";
-    const key = crypto.scryptSync(password, "salt", 32);
-    const decipher = crypto.createDecipheriv("aes-256-cbc", key, iv);
-
-    let decrypted = decipher.update(encryptedText, "hex", "utf8");
-    decrypted += decipher.final("utf8");
-
-    const masterCvRaw = decrypted;
+    // Decrypt using password provided by user from UI
+    let masterCvRaw;
+    try {
+      const key = crypto.scryptSync(password, "salt", 32);
+      const decipher = crypto.createDecipheriv("aes-256-cbc", key, iv);
+      let decrypted = decipher.update(encryptedText, "hex", "utf8");
+      decrypted += decipher.final("utf8");
+      masterCvRaw = decrypted;
+    } catch (decryptionError) {
+      console.error("Decryption failed:", decryptionError);
+      return NextResponse.json(
+        { error: "Invalid decryption password. Access Denied." },
+        { status: 401 },
+      );
+    }
 
     // 2. Construct the Prompt for Gemini
     console.log(`Analyzing JD for role: ${targetRole}`);
