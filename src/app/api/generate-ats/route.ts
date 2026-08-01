@@ -9,7 +9,27 @@ import puppeteer from "puppeteer";
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "" });
 
 // HTML Generator Helper
-function generateHtml(resumeData: any) {
+function generateHtml(resumeData: any, theme = "classic") {
+  let primaryColor = "#000000";
+  let fontStack = "'Helvetica Neue', Helvetica, Arial, sans-serif";
+  let sectionBorder = "1px solid #000";
+  let accentColor = "#333";
+  let secondaryColor = "#555";
+
+  if (theme === "modern-blue") {
+    primaryColor = "#1d4ed8"; // Deep Blue
+    fontStack = "'Inter', system-ui, -apple-system, sans-serif";
+    sectionBorder = "2px solid #e2e8f0"; // slate-200 border
+    accentColor = "#2563eb"; // blue-600
+    secondaryColor = "#475569"; // slate-600
+  } else if (theme === "emerald") {
+    primaryColor = "#059669"; // Emerald green
+    fontStack = "'Inter', system-ui, -apple-system, sans-serif";
+    sectionBorder = "2px solid #ecfdf5"; // soft green accent border
+    accentColor = "#047857"; // emerald-700
+    secondaryColor = "#374151"; // gray-700
+  }
+
   return `
   <!DOCTYPE html>
   <html lang="en">
@@ -17,16 +37,17 @@ function generateHtml(resumeData: any) {
       <meta charset="UTF-8">
       <style>
           @page { size: A4; margin: 0; }
-          body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; font-size: 10pt; line-height: 1.4; color: #333; margin: 0; padding: 15mm 20mm; }
-          h1 { font-size: 18pt; font-weight: bold; margin-bottom: 2px; text-transform: uppercase; text-align: center; }
-          .contact-info { text-align: center; font-size: 9pt; margin-bottom: 15px; color: #555; }
-          .section-title { font-size: 11pt; font-weight: bold; text-transform: uppercase; border-bottom: 1px solid #000; margin-top: 15px; margin-bottom: 5px; padding-bottom: 2px; }
+          body { font-family: ${fontStack}; font-size: 10pt; line-height: 1.4; color: #333; margin: 0; padding: 15mm 20mm; }
+          h1 { font-size: 18pt; font-weight: bold; margin-bottom: 2px; text-transform: uppercase; text-align: center; color: ${primaryColor}; }
+          .contact-info { text-align: center; font-size: 9pt; margin-bottom: 15px; color: ${secondaryColor}; }
+          .section-title { font-size: 11pt; font-weight: bold; text-transform: uppercase; border-bottom: ${sectionBorder}; color: ${primaryColor}; margin-top: 15px; margin-bottom: 5px; padding-bottom: 2px; }
           p { margin: 0 0 5px 0; text-align: justify; }
           ul { margin: 0 0 10px 0; padding-left: 20px; }
           li { margin-bottom: 3px; text-align: justify; }
+          li strong { color: ${accentColor}; }
           .job-header { display: flex; justify-content: space-between; font-weight: bold; margin-bottom: 2px; }
-          .job-title { font-weight: bold; }
-          .job-date { font-style: italic; font-weight: normal; }
+          .job-title { font-weight: bold; color: ${accentColor}; }
+          .job-date { font-style: italic; font-weight: normal; color: #666; }
       </style>
   </head>
   <body>
@@ -90,7 +111,21 @@ function generateHtml(resumeData: any) {
 }
 
 // Cover Letter HTML Generator Helper
-function generateCoverLetterHtml(resumeData: any, coverLetterText: string) {
+function generateCoverLetterHtml(resumeData: any, coverLetterText: string, theme = "classic") {
+  let primaryColor = "#000000";
+  let fontStack = "'Helvetica Neue', Helvetica, Arial, sans-serif";
+  let accentColor = "#333";
+
+  if (theme === "modern-blue") {
+    primaryColor = "#1d4ed8";
+    fontStack = "'Inter', system-ui, -apple-system, sans-serif";
+    accentColor = "#1e293b";
+  } else if (theme === "emerald") {
+    primaryColor = "#059669";
+    fontStack = "'Inter', system-ui, -apple-system, sans-serif";
+    accentColor = "#0f172a";
+  }
+
   const formattedText = coverLetterText.replace(/\n/g, "<br/>");
   return `
   <!DOCTYPE html>
@@ -99,9 +134,9 @@ function generateCoverLetterHtml(resumeData: any, coverLetterText: string) {
       <meta charset="UTF-8">
       <style>
           @page { size: A4; margin: 0; }
-          body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; font-size: 10pt; line-height: 1.5; color: #333; margin: 0; padding: 25mm 20mm; }
+          body { font-family: ${fontStack}; font-size: 10pt; line-height: 1.5; color: ${accentColor}; margin: 0; padding: 25mm 20mm; }
           .date { margin-bottom: 20px; }
-          .sender-info { font-weight: bold; margin-bottom: 20px; line-height: 1.4; }
+          .sender-info { font-weight: bold; margin-bottom: 20px; line-height: 1.4; color: ${primaryColor}; }
           .recipient-info { margin-bottom: 20px; }
           .body { text-align: justify; }
       </style>
@@ -109,8 +144,10 @@ function generateCoverLetterHtml(resumeData: any, coverLetterText: string) {
   <body>
       <div class="sender-info">
           ${resumeData.personalInfo?.name || "MUHAMMAD HAIDAR SHAHAB"}<br/>
-          ${resumeData.personalInfo?.location}<br/>
-          ${resumeData.personalInfo?.phone} | ${resumeData.personalInfo?.email}
+          <span style="font-weight: normal; color: #555;">
+            ${resumeData.personalInfo?.location}<br/>
+            ${resumeData.personalInfo?.phone} | ${resumeData.personalInfo?.email}
+          </span>
       </div>
       
       <div class="date">${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</div>
@@ -130,7 +167,7 @@ function generateCoverLetterHtml(resumeData: any, coverLetterText: string) {
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { jobDescription, targetRole, password } = body;
+    const { jobDescription, targetRole, password, theme } = body;
 
     if (!jobDescription || !targetRole || !password) {
       return NextResponse.json(
@@ -190,7 +227,7 @@ ${masterCvRaw}
 Return ONLY a raw JSON object with the following exact keys:
 {
   "tailoredResume": <tailored resume object maintaining the exact structure of the MASTER RESUME JSON>,
-  "coverLetter": "<a tailored cover letter in plain text, using \n for newlines>"
+  "coverLetter": "<a tailored cover letter in plain text, using \\n for newlines>"
 }
 
 Do NOT wrap the response in markdown blocks (e.g., \`\`\`json). Just the raw JSON string.
@@ -234,8 +271,8 @@ Do NOT wrap the response in markdown blocks (e.g., \`\`\`json). Just the raw JSO
 
     // 4. Generate HTML files
     console.log("Generating HTML templates...");
-    const cvHtmlContent = generateHtml(tailoredResume);
-    const coverLetterHtmlContent = generateCoverLetterHtml(tailoredResume, coverLetterText);
+    const cvHtmlContent = generateHtml(tailoredResume, theme);
+    const coverLetterHtmlContent = generateCoverLetterHtml(tailoredResume, coverLetterText, theme);
 
     console.log("Launching Puppeteer...");
     const browser = await puppeteer.launch({ headless: true });

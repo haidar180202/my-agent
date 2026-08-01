@@ -6,6 +6,7 @@ export default function AtsGeneratePage() {
   const [jobDescription, setJobDescription] = useState("");
   const [targetRole, setTargetRole] = useState("");
   const [password, setPassword] = useState("");
+  const [theme, setTheme] = useState("classic");
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState("");
   const [result, setResult] = useState<{ cvUrl?: string; coverLetterUrl?: string } | null>(null);
@@ -21,7 +22,7 @@ export default function AtsGeneratePage() {
       const res = await fetch("/api/generate-ats", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ jobDescription, targetRole, password }),
+        body: JSON.stringify({ jobDescription, targetRole, password, theme }),
       });
 
       if (!res.ok) {
@@ -65,17 +66,33 @@ export default function AtsGeneratePage() {
             />
           </div>
 
-          <div className="flex flex-col gap-2">
-            <label htmlFor="targetRole" className="font-medium text-sm">Target Role (e.g. Senior Frontend Engineer)</label>
-            <input
-              id="targetRole"
-              type="text"
-              required
-              value={targetRole}
-              onChange={(e) => setTargetRole(e.target.value)}
-              className="p-3 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-transparent focus:ring-2 focus:ring-blue-500 outline-none transition-all"
-              placeholder="Enter the role you are applying for"
-            />
+          <div className="flex flex-col sm:flex-row gap-4">
+            <div className="flex flex-col gap-2 flex-1">
+              <label htmlFor="targetRole" className="font-medium text-sm">Target Role (e.g. Senior Frontend Engineer)</label>
+              <input
+                id="targetRole"
+                type="text"
+                required
+                value={targetRole}
+                onChange={(e) => setTargetRole(e.target.value)}
+                className="p-3 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-transparent focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+                placeholder="Enter the role you are applying for"
+              />
+            </div>
+
+            <div className="flex flex-col gap-2 w-full sm:w-64">
+              <label htmlFor="theme" className="font-medium text-sm">Resume Theme</label>
+              <select
+                id="theme"
+                value={theme}
+                onChange={(e) => setTheme(e.target.value)}
+                className="p-3 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+              >
+                <option value="classic">Classic (Black &amp; White)</option>
+                <option value="modern-blue">Modern Blue (Tech / Fintech)</option>
+                <option value="emerald">Emerald Green (Creative / Startup)</option>
+              </select>
+            </div>
           </div>
 
           <div className="flex flex-col gap-2">
