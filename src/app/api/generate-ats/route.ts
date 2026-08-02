@@ -30,6 +30,13 @@ function generateHtml(resumeData: any, theme = "classic") {
     secondaryColor = "#374151"; // gray-700
   }
 
+  // Robust skills extraction
+  const skillsList = Array.isArray(resumeData.skills)
+    ? resumeData.skills
+    : typeof resumeData.skills === "object" && resumeData.skills !== null
+    ? Object.values(resumeData.skills).flat()
+    : [];
+
   return `
   <!DOCTYPE html>
   <html lang="en">
@@ -53,26 +60,26 @@ function generateHtml(resumeData: any, theme = "classic") {
   <body>
       <h1>${resumeData.personalInfo?.name || "MUHAMMAD HAIDAR SHAHAB"}</h1>
       <div class="contact-info">
-          ${resumeData.personalInfo?.location} | ${resumeData.personalInfo?.phone} | ${resumeData.personalInfo?.email} <br/>
-          ${resumeData.personalInfo?.linkedin} | ${resumeData.personalInfo?.portfolio}
+          ${resumeData.personalInfo?.location || ""} | ${resumeData.personalInfo?.phone || ""} | ${resumeData.personalInfo?.email || ""} <br/>
+          ${resumeData.personalInfo?.linkedin || ""} | ${resumeData.personalInfo?.portfolio || ""}
       </div>
 
       <div class="section-title">PROFESSIONAL SUMMARY</div>
       <p>${resumeData.summary || ""}</p>
 
       <div class="section-title">CORE COMPETENCIES</div>
-      <p>${(resumeData.skills || []).join(" • ")}</p>
+      <p>${skillsList.join(" • ")}</p>
 
       <div class="section-title">PROFESSIONAL EXPERIENCE</div>
       ${(resumeData.experience || [])
         .map(
           (exp: any) => `
           <div class="job-header">
-              <span>${exp.company} — <span class="job-title">${exp.role}</span></span>
-              <span class="job-date">${exp.date}</span>
+              <span>${exp.company || ""} — <span class="job-title">${exp.role || ""}</span></span>
+              <span class="job-date">${exp.date || `${exp.startDate || ""} - ${exp.endDate || ""}`}</span>
           </div>
           <ul>
-              ${(exp.bullets || []).map((b: string) => `<li>${b}</li>`).join("")}
+              ${(exp.bullets || exp.highlights || []).map((b: string) => `<li>${b}</li>`).join("")}
           </ul>
       `,
         )
@@ -83,11 +90,11 @@ function generateHtml(resumeData: any, theme = "classic") {
         .map(
           (proj: any) => `
           <div class="job-header">
-              <span>${proj.name} — <span class="job-title">${proj.type}</span></span>
-              <span class="job-date">${proj.date}</span>
+              <span>${proj.name || ""} ${proj.type ? `— <span class="job-title">${proj.type}</span>` : ""}</span>
+              <span class="job-date">${proj.date || ""}</span>
           </div>
           <ul>
-              ${(proj.bullets || []).map((b: string) => `<li>${b}</li>`).join("")}
+              ${(proj.bullets || proj.highlights || []).map((b: string) => `<li>${b}</li>`).join("")}
           </ul>
       `,
         )
@@ -98,10 +105,9 @@ function generateHtml(resumeData: any, theme = "classic") {
         .map(
           (edu: any) => `
           <div class="job-header">
-              <span>${edu.degree}</span>
-              <span class="job-date">${edu.institution}</span>
+              <span><strong>${edu.degree || ""}</strong></span>
+              <span class="job-date">${edu.school || edu.institution || ""} (${edu.date || `${edu.startDate || ""} - ${edu.endDate || ""}`})</span>
           </div>
-          <p><i>${edu.notes}</i></p>
       `,
         )
         .join("")}
@@ -177,7 +183,12 @@ export async function POST(req: Request) {
     }
 
     // 1. Read and Decrypt the master CV data
-    const dataPath = path.join(process.cwd(), "data", "master_cv.enc");
+    let dataPath = path.join(process.cwd(), "data", "master_cv.enc");
+    try {
+      await fs.access(dataPath);
+    } catch {
+      dataPath = path.join(process.cwd(), "my-project-some", "my-app", "my-agent", "data", "master_cv.enc");
+    }
     const encryptedData = await fs.readFile(dataPath, "utf-8");
 
     // Decryption logic
@@ -275,7 +286,25 @@ Do NOT wrap the response in markdown blocks (e.g., \`\`\`json). Just the raw JSO
     const coverLetterHtmlContent = generateCoverLetterHtml(tailoredResume, coverLetterText, theme);
 
     console.log("Launching Puppeteer...");
-    const browser = await puppeteer.launch({ headless: true });
+    let executablePath = undefined;
+    try {
+      const p1 = "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe";
+      await fs.access(p1);
+      executablePath = p1;
+    } catch {
+      try {
+        const p2 = "C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe";
+        await fs.access(p2);
+        executablePath = p2;
+      } catch {
+        // Fallback to Puppeteer's default
+      }
+    }
+    console.log("Using Chrome path:", executablePath || "default");
+    const browser = await puppeteer.launch({
+      headless: true,
+      executablePath: executablePath
+    });
     
     // Render CV PDF
     console.log("Rendering CV PDF...");

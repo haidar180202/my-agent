@@ -1,9 +1,9 @@
-const crypto = require("crypto");
-const fs = require("fs");
-const path = require("path");
+const crypto = require('crypto');
+const fs = require('fs');
+const path = require('path');
 
 const algorithm = "aes-256-cbc";
-const password = process.env.RESUME_PASSWORD || 'haidar$68';
+const password = process.env.RESUME_PASSWORD || "haidar$68";
 // Use scrypt to create a 32-byte key from the password
 const key = crypto.scryptSync(password, "salt", 32);
 const iv = crypto.randomBytes(16);
