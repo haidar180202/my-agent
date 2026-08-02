@@ -3,7 +3,6 @@ import fs from "fs/promises";
 import path from "path";
 import { GoogleGenAI } from "@google/genai";
 import crypto from "crypto";
-import puppeteer from "puppeteer";
 
 // Initialize Gemini Client
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "" });
@@ -286,25 +285,43 @@ Do NOT wrap the response in markdown blocks (e.g., \`\`\`json). Just the raw JSO
     const coverLetterHtmlContent = generateCoverLetterHtml(tailoredResume, coverLetterText, theme);
 
     console.log("Launching Puppeteer...");
-    let executablePath = undefined;
-    try {
-      const p1 = "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe";
-      await fs.access(p1);
-      executablePath = p1;
-    } catch {
+    let browser;
+
+    if (process.env.NODE_ENV === "production" || process.env.VERCEL) {
+      console.log("Loading serverless Puppeteer (puppeteer-core & @sparticuz/chromium)...");
+      const puppeteerCore = await import("puppeteer-core");
+      const sparticuzChromium = (await import("@sparticuz/chromium")).default;
+
+      browser = await puppeteerCore.launch({
+        args: (sparticuzChromium as any).args,
+        defaultViewport: (sparticuzChromium as any).defaultViewport,
+        executablePath: await (sparticuzChromium as any).executablePath(),
+        headless: (sparticuzChromium as any).headless as boolean || true,
+      });
+    } else {
+      console.log("Loading local Puppeteer...");
+      const puppeteerLocal = await import("puppeteer");
+      
+      let executablePath = undefined;
       try {
-        const p2 = "C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe";
-        await fs.access(p2);
-        executablePath = p2;
+        const p1 = "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe";
+        await fs.access(p1);
+        executablePath = p1;
       } catch {
-        // Fallback to Puppeteer's default
+        try {
+          const p2 = "C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe";
+          await fs.access(p2);
+          executablePath = p2;
+        } catch {
+          // Fallback to default
+        }
       }
+      console.log("Using local Chrome path:", executablePath || "default");
+      browser = await puppeteerLocal.launch({
+        headless: true,
+        executablePath: executablePath
+      });
     }
-    console.log("Using Chrome path:", executablePath || "default");
-    const browser = await puppeteer.launch({
-      headless: true,
-      executablePath: executablePath
-    });
     
     // Render CV PDF
     console.log("Rendering CV PDF...");
