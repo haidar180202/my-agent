@@ -235,6 +235,8 @@ I will provide you with a candidate's Master Resume (in JSON) and a Job Descript
 Your task is to:
 1. Tailor the candidate's professional summary and experience bullet points to perfectly match the keywords and requirements of the Job Description.
 2. Write a highly compelling, professional, and targeted Cover Letter (1 page) that directly addresses the Hiring Team, highlighting the candidate's achievements and fit for the role.
+3. Evaluate the ATS match score (percentage) of this tailored resume against the Job Description.
+4. Identify 5 to 8 critical technical keywords, skills, or methodologies from the Job Description that are highly important for this role and should be emphasized.
 
 TARGET ROLE: ${targetRole}
 JOB DESCRIPTION:
@@ -245,6 +247,8 @@ ${masterCvRaw}
 
 Return ONLY a raw JSON object with the following exact keys:
 {
+  "matchScore": <integer between 0 and 100 representing the ATS match score of the tailored resume>,
+  "missingKeywords": [<array of 5 to 8 critical technical keywords/skills from the Job Description>],
   "tailoredResume": <tailored resume object maintaining the exact structure of the MASTER RESUME JSON>,
   "coverLetter": "<a tailored cover letter in plain text, using \\n for newlines>"
 }
@@ -256,6 +260,8 @@ Do NOT wrap the response in markdown blocks (e.g., \`\`\`json). Just the raw JSO
       console.log("Calling Gemini API...");
       let tailoredResumeResult = JSON.parse(masterCvRaw);
       let coverLetterTextResult = "";
+      let matchScoreResult = 75;
+      let missingKeywordsResult: string[] = [];
 
       if (process.env.GEMINI_API_KEY) {
         try {
@@ -275,7 +281,9 @@ Do NOT wrap the response in markdown blocks (e.g., \`\`\`json). Just the raw JSO
           const responseObj = JSON.parse(cleanJsonString);
           tailoredResumeResult = responseObj.tailoredResume;
           coverLetterTextResult = responseObj.coverLetter;
-          console.log("Successfully tailored resume and generated cover letter using Gemini!");
+          matchScoreResult = responseObj.matchScore || 75;
+          missingKeywordsResult = responseObj.missingKeywords || [];
+          console.log("Successfully tailored resume and calculated match score using Gemini!");
         } catch (aiErr: any) {
           console.error("Gemini AI Error:", aiErr);
           return NextResponse.json(
@@ -294,6 +302,8 @@ Do NOT wrap the response in markdown blocks (e.g., \`\`\`json). Just the raw JSO
         success: true,
         tailoredResume: tailoredResumeResult,
         coverLetter: coverLetterTextResult,
+        matchScore: matchScoreResult,
+        missingKeywords: missingKeywordsResult,
       });
     }
 

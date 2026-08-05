@@ -15,6 +15,8 @@ export default function AtsGeneratePage() {
   // AI Tailored Data
   const [tailoredResume, setTailoredResume] = useState<any>(null);
   const [coverLetterText, setCoverLetterText] = useState("");
+  const [matchScore, setMatchScore] = useState<number | null>(null);
+  const [missingKeywords, setMissingKeywords] = useState<string[]>([]);
 
   // Resulting PDF URLs
   const [result, setResult] = useState<{ cvUrl?: string; coverLetterUrl?: string } | null>(null);
@@ -51,6 +53,8 @@ export default function AtsGeneratePage() {
       const data = await res.json();
       setTailoredResume(data.tailoredResume);
       setCoverLetterText(data.coverLetter);
+      setMatchScore(data.matchScore);
+      setMissingKeywords(data.missingKeywords);
       setStep("edit");
     } catch (err: any) {
       console.error(err);
@@ -92,6 +96,14 @@ export default function AtsGeneratePage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  // Check if keyword exists anywhere in current CV or Cover Letter
+  const checkKeywordPresence = (keyword: string) => {
+    if (!tailoredResume) return false;
+    const resumeString = JSON.stringify(tailoredResume).toLowerCase();
+    const clString = coverLetterText.toLowerCase();
+    return resumeString.includes(keyword.toLowerCase()) || clString.includes(keyword.toLowerCase());
   };
 
   // Resume Editors Helpers
@@ -194,7 +206,7 @@ export default function AtsGeneratePage() {
 
   return (
     <div className="min-h-screen bg-zinc-50 dark:bg-black p-8 sm:p-20 font-sans text-zinc-900 dark:text-zinc-50">
-      <main className="max-w-5xl mx-auto flex flex-col gap-8">
+      <main className="max-w-6xl mx-auto flex flex-col gap-8">
         
         {/* Progress Stepper */}
         <div className="flex items-center justify-center gap-4 mb-4 text-sm font-semibold tracking-wide uppercase">
@@ -315,7 +327,7 @@ export default function AtsGeneratePage() {
                 <h1 className="text-3xl font-bold tracking-tight">Review &amp; Edit Drafts</h1>
                 <button
                   onClick={() => setStep("input")}
-                  className="px-4 py-2 rounded-lg border border-zinc-200 dark:border-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-900 text-sm transition-colors"
+                  className="px-4 py-2 rounded-lg border border-zinc-200 dark:border-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-900 text-sm transition-colors cursor-pointer"
                 >
                   &larr; Back to Input
                 </button>
@@ -325,269 +337,342 @@ export default function AtsGeneratePage() {
               </p>
             </header>
 
-            <div className="flex flex-col gap-6 bg-white dark:bg-zinc-900 p-6 sm:p-8 rounded-2xl shadow-sm border border-zinc-200 dark:border-zinc-800">
+            {/* Grid Layout: Editors on Left (2/3), Score & Checklist on Right (1/3) */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
               
-              {/* Tab Selector */}
-              <div className="flex border-b border-zinc-200 dark:border-zinc-800 pb-3 gap-4">
-                <button
-                  onClick={() => setEditorTab("resume")}
-                  className={`px-4 py-2 rounded-lg font-semibold text-sm transition-all ${
-                    editorTab === "resume"
-                      ? "bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400"
-                      : "text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-300"
-                  }`}
-                >
-                  📄 Edit Resume Details
-                </button>
-                <button
-                  onClick={() => setEditorTab("coverLetter")}
-                  className={`px-4 py-2 rounded-lg font-semibold text-sm transition-all ${
-                    editorTab === "coverLetter"
-                      ? "bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400"
-                      : "text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-300"
-                  }`}
-                >
-                  ✉️ Edit Cover Letter Text
-                </button>
+              {/* Left Column (Editors) */}
+              <div className="lg:col-span-2 flex flex-col gap-6">
+                <div className="flex flex-col gap-6 bg-white dark:bg-zinc-900 p-6 sm:p-8 rounded-2xl shadow-sm border border-zinc-200 dark:border-zinc-800">
+                  
+                  {/* Tab Selector */}
+                  <div className="flex border-b border-zinc-200 dark:border-zinc-800 pb-3 gap-4">
+                    <button
+                      onClick={() => setEditorTab("resume")}
+                      className={`px-4 py-2 rounded-lg font-semibold text-sm transition-all cursor-pointer ${
+                        editorTab === "resume"
+                          ? "bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400"
+                          : "text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-300"
+                      }`}
+                    >
+                      📄 Edit Resume Details
+                    </button>
+                    <button
+                      onClick={() => setEditorTab("coverLetter")}
+                      className={`px-4 py-2 rounded-lg font-semibold text-sm transition-all cursor-pointer ${
+                        editorTab === "coverLetter"
+                          ? "bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400"
+                          : "text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-300"
+                      }`}
+                    >
+                      ✉️ Edit Cover Letter Text
+                    </button>
+                  </div>
+
+                  {/* EDITOR PANEL: RESUME */}
+                  {editorTab === "resume" && (
+                    <div className="flex flex-col gap-8">
+                      
+                      {/* Personal Info */}
+                      <div className="flex flex-col gap-4 border-b border-zinc-100 dark:border-zinc-800/50 pb-6">
+                        <h3 className="text-lg font-bold text-blue-600 dark:text-blue-400">Personal Info</h3>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                          <div className="flex flex-col gap-1">
+                            <label className="text-xs font-semibold text-zinc-500">Name</label>
+                            <input
+                              type="text"
+                              value={tailoredResume.personalInfo?.name || ""}
+                              onChange={(e) => handlePersonalInfoChange("name", e.target.value)}
+                              className="p-2.5 rounded-lg border border-zinc-200 dark:border-zinc-850 bg-transparent text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                            />
+                          </div>
+                          <div className="flex flex-col gap-1">
+                            <label className="text-xs font-semibold text-zinc-500">Title</label>
+                            <input
+                              type="text"
+                              value={tailoredResume.personalInfo?.title || ""}
+                              onChange={(e) => handlePersonalInfoChange("title", e.target.value)}
+                              className="p-2.5 rounded-lg border border-zinc-200 dark:border-zinc-850 bg-transparent text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                            />
+                          </div>
+                          <div className="flex flex-col gap-1">
+                            <label className="text-xs font-semibold text-zinc-500">Location</label>
+                            <input
+                              type="text"
+                              value={tailoredResume.personalInfo?.location || ""}
+                              onChange={(e) => handlePersonalInfoChange("location", e.target.value)}
+                              className="p-2.5 rounded-lg border border-zinc-200 dark:border-zinc-850 bg-transparent text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                            />
+                          </div>
+                          <div className="flex flex-col gap-1">
+                            <label className="text-xs font-semibold text-zinc-500">Email</label>
+                            <input
+                              type="text"
+                              value={tailoredResume.personalInfo?.email || ""}
+                              onChange={(e) => handlePersonalInfoChange("email", e.target.value)}
+                              className="p-2.5 rounded-lg border border-zinc-200 dark:border-zinc-850 bg-transparent text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                            />
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Summary */}
+                      <div className="flex flex-col gap-2 border-b border-zinc-100 dark:border-zinc-800/50 pb-6">
+                        <h3 className="text-lg font-bold text-blue-600 dark:text-blue-400">Professional Summary</h3>
+                        <textarea
+                          rows={5}
+                          value={tailoredResume.summary || ""}
+                          onChange={(e) => handleSummaryChange(e.target.value)}
+                          className="p-3 rounded-lg border border-zinc-200 dark:border-zinc-850 bg-transparent text-sm resize-y leading-relaxed w-full focus:ring-2 focus:ring-blue-500 outline-none"
+                        />
+                      </div>
+
+                      {/* Experience */}
+                      <div className="flex flex-col gap-6 border-b border-zinc-100 dark:border-zinc-800/50 pb-6">
+                        <h3 className="text-lg font-bold text-blue-600 dark:text-blue-400">Work Experience</h3>
+                        {(tailoredResume.experience || []).map((exp: any, expIndex: number) => {
+                          const bulletKey = exp.bullets ? "bullets" : "highlights";
+                          return (
+                            <div key={expIndex} className="p-4 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-950/20 flex flex-col gap-4">
+                              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                                <div className="flex flex-col gap-1">
+                                  <label className="text-xs text-zinc-500">Company</label>
+                                  <input
+                                    type="text"
+                                    value={exp.company || ""}
+                                    onChange={(e) => handleExperienceChange(expIndex, "company", e.target.value)}
+                                    className="p-2 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                                  />
+                                </div>
+                                <div className="flex flex-col gap-1">
+                                  <label className="text-xs text-zinc-500">Role</label>
+                                  <input
+                                    type="text"
+                                    value={exp.role || ""}
+                                    onChange={(e) => handleExperienceChange(expIndex, "role", e.target.value)}
+                                    className="p-2 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                                  />
+                                </div>
+                                <div className="flex flex-col gap-1">
+                                  <label className="text-xs text-zinc-500">Dates</label>
+                                  <input
+                                    type="text"
+                                    value={exp.date || exp.startDate || ""}
+                                    onChange={(e) => handleExperienceChange(expIndex, exp.date ? "date" : "startDate", e.target.value)}
+                                    className="p-2 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                                  />
+                                </div>
+                              </div>
+
+                              <div className="flex flex-col gap-2">
+                                <label className="text-xs font-semibold text-zinc-500">Tailored Achievements (Bullets)</label>
+                                {(exp[bulletKey] || []).map((bullet: string, bulletIndex: number) => (
+                                  <div key={bulletIndex} className="flex gap-2 items-center">
+                                    <span className="text-zinc-400 text-sm">•</span>
+                                    <input
+                                      type="text"
+                                      value={bullet}
+                                      onChange={(e) => handleExperienceBulletChange(expIndex, bulletIndex, e.target.value)}
+                                      className="flex-1 p-2 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                                    />
+                                    <button
+                                      type="button"
+                                      onClick={() => handleDeleteExperienceBullet(expIndex, bulletIndex)}
+                                      className="p-2 rounded-lg text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20 text-xs cursor-pointer"
+                                      title="Delete bullet"
+                                    >
+                                      ❌
+                                    </button>
+                                  </div>
+                                ))}
+                                <button
+                                  type="button"
+                                  onClick={() => handleAddExperienceBullet(expIndex)}
+                                  className="mt-1 self-start px-3 py-1 rounded bg-zinc-200 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 text-xs font-medium hover:bg-zinc-300 dark:hover:bg-zinc-700 transition-colors cursor-pointer"
+                                >
+                                  + Add Bullet Point
+                                </button>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+
+                      {/* Projects */}
+                      <div className="flex flex-col gap-6">
+                        <h3 className="text-lg font-bold text-blue-600 dark:text-blue-400">AI Featured Projects</h3>
+                        {(tailoredResume.projects || []).map((proj: any, projIndex: number) => {
+                          const bulletKey = proj.bullets ? "bullets" : "highlights";
+                          return (
+                            <div key={projIndex} className="p-4 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-950/20 flex flex-col gap-4">
+                              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                                <div className="flex flex-col gap-1">
+                                  <label className="text-xs text-zinc-500">Project Name</label>
+                                  <input
+                                    type="text"
+                                    value={proj.name || ""}
+                                    onChange={(e) => handleProjectChange(projIndex, "name", e.target.value)}
+                                    className="p-2 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                                  />
+                                </div>
+                                <div className="flex flex-col gap-1">
+                                  <label className="text-xs text-zinc-500">Project Subtitle / Type</label>
+                                  <input
+                                    type="text"
+                                    value={proj.type || ""}
+                                    onChange={(e) => handleProjectChange(projIndex, "type", e.target.value)}
+                                    className="p-2 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                                  />
+                                </div>
+                                <div className="flex flex-col gap-1">
+                                  <label className="text-xs text-zinc-500">Date</label>
+                                  <input
+                                    type="text"
+                                    value={proj.date || ""}
+                                    onChange={(e) => handleProjectChange(projIndex, "date", e.target.value)}
+                                    className="p-2 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                                  />
+                                </div>
+                              </div>
+
+                              <div className="flex flex-col gap-2">
+                                <label className="text-xs font-semibold text-zinc-500">Project Bullets</label>
+                                {(proj[bulletKey] || []).map((bullet: string, bulletIndex: number) => (
+                                  <div key={bulletIndex} className="flex gap-2 items-center">
+                                    <span className="text-zinc-400 text-sm">•</span>
+                                    <input
+                                      type="text"
+                                      value={bullet}
+                                      onChange={(e) => handleProjectBulletChange(projIndex, bulletIndex, e.target.value)}
+                                      className="flex-1 p-2 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                                    />
+                                    <button
+                                      type="button"
+                                      onClick={() => handleDeleteProjectBullet(projIndex, bulletIndex)}
+                                      className="p-2 rounded-lg text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20 text-xs cursor-pointer"
+                                      title="Delete bullet"
+                                    >
+                                      ❌
+                                    </button>
+                                  </div>
+                                ))}
+                                <button
+                                  type="button"
+                                  onClick={() => handleAddProjectBullet(projIndex)}
+                                  className="mt-1 self-start px-3 py-1 rounded bg-zinc-200 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 text-xs font-medium hover:bg-zinc-300 dark:hover:bg-zinc-700 transition-colors cursor-pointer"
+                                >
+                                  + Add Bullet Point
+                                </button>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+
+                    </div>
+                  )}
+
+                  {/* EDITOR PANEL: COVER LETTER */}
+                  {editorTab === "coverLetter" && (
+                    <div className="flex flex-col gap-4">
+                      <h3 className="text-lg font-bold text-blue-600 dark:text-blue-400">Cover Letter</h3>
+                      <textarea
+                        rows={18}
+                        value={coverLetterText}
+                        onChange={(e) => setCoverLetterText(e.target.value)}
+                        className="p-4 rounded-xl border border-zinc-200 dark:border-zinc-850 bg-transparent text-sm resize-y leading-relaxed w-full font-mono focus:ring-2 focus:ring-blue-500 outline-none"
+                        placeholder="Review and modify the cover letter text..."
+                      />
+                    </div>
+                  )}
+
+                  {/* Action Buttons */}
+                  <div className="flex flex-col sm:flex-row gap-4 border-t border-zinc-200 dark:border-zinc-800 pt-6 mt-4">
+                    <button
+                      type="button"
+                      onClick={handleGeneratePdf}
+                      disabled={loading}
+                      className="px-6 py-3 rounded-full bg-blue-600 hover:bg-blue-700 text-white font-semibold transition-colors disabled:opacity-50 flex items-center gap-2 cursor-pointer"
+                    >
+                      {loading ? (
+                        <>
+                          <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                          </svg>
+                          {status}
+                        </>
+                      ) : (
+                        "Compile & Generate PDFs 🚀"
+                      )}
+                    </button>
+                  </div>
+
+                </div>
               </div>
 
-              {/* EDITOR PANEL: RESUME */}
-              {editorTab === "resume" && (
-                <div className="flex flex-col gap-8">
-                  
-                  {/* Personal Info */}
-                  <div className="flex flex-col gap-4 border-b border-zinc-100 dark:border-zinc-800/50 pb-6">
-                    <h3 className="text-lg font-bold text-blue-600 dark:text-blue-400">Personal Info</h3>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div className="flex flex-col gap-1">
-                        <label className="text-xs font-semibold text-zinc-500">Name</label>
-                        <input
-                          type="text"
-                          value={tailoredResume.personalInfo?.name || ""}
-                          onChange={(e) => handlePersonalInfoChange("name", e.target.value)}
-                          className="p-2.5 rounded-lg border border-zinc-200 dark:border-zinc-850 bg-transparent text-sm"
-                        />
-                      </div>
-                      <div className="flex flex-col gap-1">
-                        <label className="text-xs font-semibold text-zinc-500">Title</label>
-                        <input
-                          type="text"
-                          value={tailoredResume.personalInfo?.title || ""}
-                          onChange={(e) => handlePersonalInfoChange("title", e.target.value)}
-                          className="p-2.5 rounded-lg border border-zinc-200 dark:border-zinc-850 bg-transparent text-sm"
-                        />
-                      </div>
-                      <div className="flex flex-col gap-1">
-                        <label className="text-xs font-semibold text-zinc-500">Location</label>
-                        <input
-                          type="text"
-                          value={tailoredResume.personalInfo?.location || ""}
-                          onChange={(e) => handlePersonalInfoChange("location", e.target.value)}
-                          className="p-2.5 rounded-lg border border-zinc-200 dark:border-zinc-850 bg-transparent text-sm"
-                        />
-                      </div>
-                      <div className="flex flex-col gap-1">
-                        <label className="text-xs font-semibold text-zinc-500">Email</label>
-                        <input
-                          type="text"
-                          value={tailoredResume.personalInfo?.email || ""}
-                          onChange={(e) => handlePersonalInfoChange("email", e.target.value)}
-                          className="p-2.5 rounded-lg border border-zinc-200 dark:border-zinc-850 bg-transparent text-sm"
-                        />
-                      </div>
+              {/* Right Column (Score & Checklist Sidebar) - Sticky on Desktop */}
+              <div className="lg:col-span-1 flex flex-col gap-6 lg:sticky lg:top-8 self-start w-full">
+                
+                {/* Match Score widget */}
+                {matchScore !== null && (
+                  <div className="bg-white dark:bg-zinc-900 p-6 rounded-2xl shadow-sm border border-zinc-200 dark:border-zinc-800 flex flex-col items-center text-center gap-4">
+                    <h3 className="font-bold text-xs text-zinc-400 dark:text-zinc-500 uppercase tracking-widest">ATS Match Score</h3>
+                    
+                    <div className={`w-28 h-28 rounded-full border-[6px] flex flex-col items-center justify-center bg-zinc-50 dark:bg-zinc-950 font-sans transition-all duration-500 ${
+                      matchScore >= 80
+                        ? "text-emerald-600 dark:text-emerald-400 border-emerald-500"
+                        : matchScore >= 50
+                        ? "text-amber-600 dark:text-amber-400 border-amber-500"
+                        : "text-rose-600 dark:text-rose-400 border-rose-500"
+                    }`}>
+                      <span className="text-3xl font-black">{matchScore}%</span>
+                      <span className="text-[10px] uppercase font-bold tracking-wider">Match</span>
+                    </div>
+
+                    <p className="text-xs text-zinc-500 dark:text-zinc-400 leading-relaxed px-2">
+                      {matchScore >= 80
+                        ? "Excellent match! Your tailored resume aligns highly with the job requirements."
+                        : matchScore >= 50
+                        ? "Decent match, but you can further boost score by weaving in missing keywords below."
+                        : "Low alignment. Try rewriting achievements to incorporate critical job terms."}
+                    </p>
+                  </div>
+                )}
+
+                {/* Keyword Checklist widget */}
+                {missingKeywords.length > 0 && (
+                  <div className="bg-white dark:bg-zinc-900 p-6 rounded-2xl shadow-sm border border-zinc-200 dark:border-zinc-800 flex flex-col gap-4">
+                    <div>
+                      <h3 className="font-bold text-xs text-zinc-400 dark:text-zinc-500 uppercase tracking-widest mb-1">Keywords Checklist</h3>
+                      <p className="text-[11px] text-zinc-400 dark:text-zinc-500">Weave these keywords into your resume or cover letter. They check off automatically.</p>
+                    </div>
+
+                    <div className="flex flex-col gap-2 max-h-[320px] overflow-y-auto pr-1">
+                      {missingKeywords.map((keyword, index) => {
+                        const isPresent = checkKeywordPresence(keyword);
+                        return (
+                          <div key={index} className="flex items-center gap-3 p-2.5 rounded-xl bg-zinc-50 dark:bg-zinc-950 border border-zinc-100 dark:border-zinc-850/30 transition-all duration-300">
+                            <span className={`w-5 h-5 flex items-center justify-center rounded-full text-xs transition-colors duration-300 ${
+                              isPresent
+                                ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-400"
+                                : "bg-zinc-200/60 dark:bg-zinc-800 text-zinc-400"
+                            }`}>
+                              {isPresent ? "✓" : "○"}
+                            </span>
+                            <span className={`text-sm tracking-wide transition-all ${
+                              isPresent 
+                                ? "line-through text-zinc-400 dark:text-zinc-600 font-normal" 
+                                : "font-semibold text-zinc-700 dark:text-zinc-300"
+                            }`}>
+                              {keyword}
+                            </span>
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
+                )}
 
-                  {/* Summary */}
-                  <div className="flex flex-col gap-2 border-b border-zinc-100 dark:border-zinc-800/50 pb-6">
-                    <h3 className="text-lg font-bold text-blue-600 dark:text-blue-400">Professional Summary</h3>
-                    <textarea
-                      rows={5}
-                      value={tailoredResume.summary || ""}
-                      onChange={(e) => handleSummaryChange(e.target.value)}
-                      className="p-3 rounded-lg border border-zinc-200 dark:border-zinc-850 bg-transparent text-sm resize-y leading-relaxed w-full"
-                    />
-                  </div>
-
-                  {/* Experience */}
-                  <div className="flex flex-col gap-6 border-b border-zinc-100 dark:border-zinc-800/50 pb-6">
-                    <h3 className="text-lg font-bold text-blue-600 dark:text-blue-400">Work Experience</h3>
-                    {(tailoredResume.experience || []).map((exp: any, expIndex: number) => {
-                      const bulletKey = exp.bullets ? "bullets" : "highlights";
-                      return (
-                        <div key={expIndex} className="p-4 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-950/20 flex flex-col gap-4">
-                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                            <div className="flex flex-col gap-1">
-                              <label className="text-xs text-zinc-500">Company</label>
-                              <input
-                                type="text"
-                                value={exp.company || ""}
-                                onChange={(e) => handleExperienceChange(expIndex, "company", e.target.value)}
-                                className="p-2 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-sm"
-                              />
-                            </div>
-                            <div className="flex flex-col gap-1">
-                              <label className="text-xs text-zinc-500">Role</label>
-                              <input
-                                type="text"
-                                value={exp.role || ""}
-                                onChange={(e) => handleExperienceChange(expIndex, "role", e.target.value)}
-                                className="p-2 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-sm"
-                              />
-                            </div>
-                            <div className="flex flex-col gap-1">
-                              <label className="text-xs text-zinc-500">Dates</label>
-                              <input
-                                type="text"
-                                value={exp.date || exp.startDate || ""}
-                                onChange={(e) => handleExperienceChange(expIndex, exp.date ? "date" : "startDate", e.target.value)}
-                                className="p-2 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-sm"
-                              />
-                            </div>
-                          </div>
-
-                          <div className="flex flex-col gap-2">
-                            <label className="text-xs font-semibold text-zinc-500">Tailored Achievements (Bullets)</label>
-                            {(exp[bulletKey] || []).map((bullet: string, bulletIndex: number) => (
-                              <div key={bulletIndex} className="flex gap-2 items-center">
-                                <span className="text-zinc-400 text-sm">•</span>
-                                <input
-                                  type="text"
-                                  value={bullet}
-                                  onChange={(e) => handleExperienceBulletChange(expIndex, bulletIndex, e.target.value)}
-                                  className="flex-1 p-2 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-sm"
-                                />
-                                <button
-                                  type="button"
-                                  onClick={() => handleDeleteExperienceBullet(expIndex, bulletIndex)}
-                                  className="p-2 rounded-lg text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20 text-xs"
-                                  title="Delete bullet"
-                                >
-                                  ❌
-                                </button>
-                              </div>
-                            ))}
-                            <button
-                              type="button"
-                              onClick={() => handleAddExperienceBullet(expIndex)}
-                              className="mt-1 self-start px-3 py-1 rounded bg-zinc-200 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 text-xs font-medium hover:bg-zinc-300 dark:hover:bg-zinc-700 transition-colors"
-                            >
-                              + Add Bullet Point
-                            </button>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-
-                  {/* Projects */}
-                  <div className="flex flex-col gap-6">
-                    <h3 className="text-lg font-bold text-blue-600 dark:text-blue-400">AI Featured Projects</h3>
-                    {(tailoredResume.projects || []).map((proj: any, projIndex: number) => {
-                      const bulletKey = proj.bullets ? "bullets" : "highlights";
-                      return (
-                        <div key={projIndex} className="p-4 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-950/20 flex flex-col gap-4">
-                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                            <div className="flex flex-col gap-1">
-                              <label className="text-xs text-zinc-500">Project Name</label>
-                              <input
-                                type="text"
-                                value={proj.name || ""}
-                                onChange={(e) => handleProjectChange(projIndex, "name", e.target.value)}
-                                className="p-2 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-sm"
-                              />
-                            </div>
-                            <div className="flex flex-col gap-1">
-                              <label className="text-xs text-zinc-500">Project Subtitle / Type</label>
-                              <input
-                                type="text"
-                                value={proj.type || ""}
-                                onChange={(e) => handleProjectChange(projIndex, "type", e.target.value)}
-                                className="p-2 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-sm"
-                              />
-                            </div>
-                            <div className="flex flex-col gap-1">
-                              <label className="text-xs text-zinc-500">Date</label>
-                              <input
-                                type="text"
-                                value={proj.date || ""}
-                                onChange={(e) => handleProjectChange(projIndex, "date", e.target.value)}
-                                className="p-2 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-sm"
-                              />
-                            </div>
-                          </div>
-
-                          <div className="flex flex-col gap-2">
-                            <label className="text-xs font-semibold text-zinc-500">Project Bullets</label>
-                            {(proj[bulletKey] || []).map((bullet: string, bulletIndex: number) => (
-                              <div key={bulletIndex} className="flex gap-2 items-center">
-                                <span className="text-zinc-400 text-sm">•</span>
-                                <input
-                                  type="text"
-                                  value={bullet}
-                                  onChange={(e) => handleProjectBulletChange(projIndex, bulletIndex, e.target.value)}
-                                  className="flex-1 p-2 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-sm"
-                                />
-                                <button
-                                  type="button"
-                                  onClick={() => handleDeleteProjectBullet(projIndex, bulletIndex)}
-                                  className="p-2 rounded-lg text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20 text-xs"
-                                  title="Delete bullet"
-                                >
-                                  ❌
-                                </button>
-                              </div>
-                            ))}
-                            <button
-                              type="button"
-                              onClick={() => handleAddProjectBullet(projIndex)}
-                              className="mt-1 self-start px-3 py-1 rounded bg-zinc-200 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 text-xs font-medium hover:bg-zinc-300 dark:hover:bg-zinc-700 transition-colors"
-                            >
-                              + Add Bullet Point
-                            </button>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-
-                </div>
-              )}
-
-              {/* EDITOR PANEL: COVER LETTER */}
-              {editorTab === "coverLetter" && (
-                <div className="flex flex-col gap-4">
-                  <h3 className="text-lg font-bold text-blue-600 dark:text-blue-400">Cover Letter</h3>
-                  <textarea
-                    rows={18}
-                    value={coverLetterText}
-                    onChange={(e) => setCoverLetterText(e.target.value)}
-                    className="p-4 rounded-xl border border-zinc-200 dark:border-zinc-850 bg-transparent text-sm resize-y leading-relaxed w-full font-mono"
-                    placeholder="Review and modify the cover letter text..."
-                  />
-                </div>
-              )}
-
-              {/* Action Buttons */}
-              <div className="flex flex-col sm:flex-row gap-4 border-t border-zinc-200 dark:border-zinc-800 pt-6 mt-4">
-                <button
-                  type="button"
-                  onClick={handleGeneratePdf}
-                  disabled={loading}
-                  className="px-6 py-3 rounded-full bg-blue-600 hover:bg-blue-700 text-white font-semibold transition-colors disabled:opacity-50 flex items-center gap-2"
-                >
-                  {loading ? (
-                    <>
-                      <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                      </svg>
-                      {status}
-                    </>
-                  ) : (
-                    "Compile & Generate PDFs 🚀"
-                  )}
-                </button>
               </div>
 
             </div>
@@ -602,7 +687,7 @@ export default function AtsGeneratePage() {
                 <h1 className="text-3xl font-bold tracking-tight">Your PDF Documents</h1>
                 <button
                   onClick={() => setStep("edit")}
-                  className="px-4 py-2 rounded-lg border border-zinc-200 dark:border-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-900 text-sm transition-colors"
+                  className="px-4 py-2 rounded-lg border border-zinc-200 dark:border-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-900 text-sm transition-colors cursor-pointer"
                 >
                   &larr; Back to Editor
                 </button>
@@ -617,7 +702,7 @@ export default function AtsGeneratePage() {
                 <div className="flex gap-2">
                   <button
                     onClick={() => setActiveTab("cv")}
-                    className={`px-4 py-2 rounded-lg font-medium text-sm transition-colors ${
+                    className={`px-4 py-2 rounded-lg font-medium text-sm transition-colors cursor-pointer ${
                       activeTab === "cv"
                         ? "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300"
                         : "text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
@@ -627,7 +712,7 @@ export default function AtsGeneratePage() {
                   </button>
                   <button
                     onClick={() => setActiveTab("coverLetter")}
-                    className={`px-4 py-2 rounded-lg font-medium text-sm transition-colors ${
+                    className={`px-4 py-2 rounded-lg font-medium text-sm transition-colors cursor-pointer ${
                       activeTab === "coverLetter"
                         ? "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300"
                         : "text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
@@ -641,8 +726,8 @@ export default function AtsGeneratePage() {
                   {activeTab === "cv" && result.cvUrl && (
                     <a
                       href={result.cvUrl}
-                      download={`${targetRole.replace(/\s+/g, "_")}_CV.pdf`}
-                      className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-medium text-sm transition-colors flex items-center gap-1.5"
+                      download={`${targetRole.replace(/\s+/g, "_")}_CV_${matchScore || "tailored"}_Match.pdf`}
+                      className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-medium text-sm transition-colors flex items-center gap-1.5 cursor-pointer"
                     >
                       📥 Download CV
                     </a>
@@ -650,8 +735,8 @@ export default function AtsGeneratePage() {
                   {activeTab === "coverLetter" && result.coverLetterUrl && (
                     <a
                       href={result.coverLetterUrl}
-                      download={`${targetRole.replace(/\s+/g, "_")}_CoverLetter.pdf`}
-                      className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-medium text-sm transition-colors flex items-center gap-1.5"
+                      download={`${targetRole.replace(/\s+/g, "_")}_CoverLetter_${matchScore || "tailored"}_Match.pdf`}
+                      className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-medium text-sm transition-colors flex items-center gap-1.5 cursor-pointer"
                     >
                       📥 Download Letter
                     </a>
