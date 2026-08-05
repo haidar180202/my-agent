@@ -172,54 +172,63 @@ function generateCoverLetterHtml(resumeData: any, coverLetterText: string, theme
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { jobDescription, targetRole, password, theme } = body;
+    const { action, jobDescription, targetRole, password, theme, tailoredResume, coverLetterText } = body;
 
-    if (!jobDescription || !targetRole || !password) {
+    if (!action) {
       return NextResponse.json(
-        { error: "Job description, target role, and decryption password are required" },
+        { error: "Action parameter (generate-text or generate-pdf) is required" },
         { status: 400 },
       );
     }
 
-    // 1. Read and Decrypt the master CV data
-    let dataPath = path.join(process.cwd(), "data", "master_cv.enc");
-    try {
-      await fs.access(dataPath);
-    } catch {
-      dataPath = path.join(process.cwd(), "my-project-some", "my-app", "my-agent", "data", "master_cv.enc");
-    }
-    const encryptedData = await fs.readFile(dataPath, "utf-8");
+    // Phase 1: Decrypt Master CV and Tailor using Gemini
+    if (action === "generate-text") {
+      if (!jobDescription || !targetRole || !password) {
+        return NextResponse.json(
+          { error: "Job description, target role, and decryption password are required" },
+          { status: 400 },
+        );
+      }
 
-    // Decryption logic
-    const parts = encryptedData.split(":");
-    const ivHex = parts.shift();
+      // 1. Read and Decrypt the master CV data
+      let dataPath = path.join(process.cwd(), "data", "master_cv.enc");
+      try {
+        await fs.access(dataPath);
+      } catch {
+        dataPath = path.join(process.cwd(), "my-project-some", "my-app", "my-agent", "data", "master_cv.enc");
+      }
+      const encryptedData = await fs.readFile(dataPath, "utf-8");
 
-    if (!ivHex) {
-      throw new Error("Invalid encrypted data format");
-    }
+      // Decryption logic
+      const parts = encryptedData.split(":");
+      const ivHex = parts.shift();
 
-    const iv = Buffer.from(ivHex, "hex");
-    const encryptedText = parts.join(":");
+      if (!ivHex) {
+        throw new Error("Invalid encrypted data format");
+      }
 
-    // Decrypt using password provided by user from UI
-    let masterCvRaw;
-    try {
-      const key = crypto.scryptSync(password, "salt", 32);
-      const decipher = crypto.createDecipheriv("aes-256-cbc", key, iv);
-      let decrypted = decipher.update(encryptedText, "hex", "utf8");
-      decrypted += decipher.final("utf8");
-      masterCvRaw = decrypted;
-    } catch (decryptionError) {
-      console.error("Decryption failed:", decryptionError);
-      return NextResponse.json(
-        { error: "Invalid decryption password. Access Denied." },
-        { status: 401 },
-      );
-    }
+      const iv = Buffer.from(ivHex, "hex");
+      const encryptedText = parts.join(":");
 
-    // 2. Construct the Prompt for Gemini
-    console.log(`Analyzing JD for role: ${targetRole}`);
-    const prompt = `
+      // Decrypt using password provided by user from UI
+      let masterCvRaw;
+      try {
+        const key = crypto.scryptSync(password, "salt", 32);
+        const decipher = crypto.createDecipheriv("aes-256-cbc", key, iv);
+        let decrypted = decipher.update(encryptedText, "hex", "utf8");
+        decrypted += decipher.final("utf8");
+        masterCvRaw = decrypted;
+      } catch (decryptionError) {
+        console.error("Decryption failed:", decryptionError);
+        return NextResponse.json(
+          { error: "Invalid decryption password. Access Denied." },
+          { status: 401 },
+        );
+      }
+
+      // 2. Construct the Prompt for Gemini
+      console.log(`Analyzing JD for role: ${targetRole}`);
+      const prompt = `
 You are an expert Executive ATS Resume and Cover Letter Writer.
 I will provide you with a candidate's Master Resume (in JSON) and a Job Description.
 
@@ -243,126 +252,149 @@ Return ONLY a raw JSON object with the following exact keys:
 Do NOT wrap the response in markdown blocks (e.g., \`\`\`json). Just the raw JSON string.
 `;
 
-    // 3. Call Gemini API
-    console.log("Calling Gemini API...");
-    let tailoredResume = JSON.parse(masterCvRaw); // Fallback to original
-    let coverLetterText = `Dear Hiring Team,\n\nI am writing to express my interest in the ${targetRole} position. My background in software engineering makes me a strong fit for your team.\n\nBest regards,\n\nMuhammad Haidar Shahab`; // Fallback
+      // 3. Call Gemini API
+      console.log("Calling Gemini API...");
+      let tailoredResumeResult = JSON.parse(masterCvRaw);
+      let coverLetterTextResult = "";
 
-    if (process.env.GEMINI_API_KEY) {
-      try {
-        const response = await ai.models.generateContent({
-          model: "gemini-2.5-flash",
-          contents: prompt,
-          config: {
-            temperature: 0.3,
-          },
-        });
-        const aiResponseText = response.text || "{}";
-        const cleanJsonString = aiResponseText
-          .replace(/```json/g, "")
-          .replace(/```/g, "")
-          .trim();
-          
-        const responseObj = JSON.parse(cleanJsonString);
-        tailoredResume = responseObj.tailoredResume;
-        coverLetterText = responseObj.coverLetter;
-        console.log("Successfully tailored resume and generated cover letter using Gemini!");
-      } catch (aiErr) {
-        console.error(
-          "Gemini AI Error. Falling back to original resume.",
-          aiErr,
+      if (process.env.GEMINI_API_KEY) {
+        try {
+          const response = await ai.models.generateContent({
+            model: "gemini-2.5-flash",
+            contents: prompt,
+            config: {
+              temperature: 0.3,
+            },
+          });
+          const aiResponseText = response.text || "{}";
+          const cleanJsonString = aiResponseText
+            .replace(/```json/g, "")
+            .replace(/```/g, "")
+            .trim();
+            
+          const responseObj = JSON.parse(cleanJsonString);
+          tailoredResumeResult = responseObj.tailoredResume;
+          coverLetterTextResult = responseObj.coverLetter;
+          console.log("Successfully tailored resume and generated cover letter using Gemini!");
+        } catch (aiErr: any) {
+          console.error("Gemini AI Error:", aiErr);
+          return NextResponse.json(
+            { error: "Gemini AI generation failed: " + aiErr.message },
+            { status: 500 },
+          );
+        }
+      } else {
+        return NextResponse.json(
+          { error: "Gemini API key is missing in environment variables" },
+          { status: 500 },
         );
       }
-    } else {
-      console.log(
-        "No API Key found. Using original resume data to generate PDF.",
-      );
+
+      return NextResponse.json({
+        success: true,
+        tailoredResume: tailoredResumeResult,
+        coverLetter: coverLetterTextResult,
+      });
     }
 
-    // 4. Generate HTML files
-    console.log("Generating HTML templates...");
-    const cvHtmlContent = generateHtml(tailoredResume, theme);
-    const coverLetterHtmlContent = generateCoverLetterHtml(tailoredResume, coverLetterText, theme);
-
-    console.log("Launching Puppeteer...");
-    let browser;
-
-    if (process.env.NODE_ENV === "production" || process.env.VERCEL) {
-      console.log("Loading serverless Puppeteer (puppeteer-core & @sparticuz/chromium)...");
-      const puppeteerCore = await import("puppeteer-core");
-      const sparticuzChromium = (await import("@sparticuz/chromium")).default;
-
-      browser = await puppeteerCore.launch({
-        args: (sparticuzChromium as any).args,
-        defaultViewport: (sparticuzChromium as any).defaultViewport,
-        executablePath: await (sparticuzChromium as any).executablePath(),
-        headless: (sparticuzChromium as any).headless as boolean || true,
-      });
-    } else {
-      console.log("Loading local Puppeteer...");
-      const puppeteerLocal = await import("puppeteer");
-      
-      let executablePath = undefined;
-      try {
-        const p1 = "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe";
-        await fs.access(p1);
-        executablePath = p1;
-      } catch {
-        try {
-          const p2 = "C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe";
-          await fs.access(p2);
-          executablePath = p2;
-        } catch {
-          // Fallback to default
-        }
+    // Phase 2: Compile Final PDF
+    if (action === "generate-pdf") {
+      if (!tailoredResume || !coverLetterText) {
+        return NextResponse.json(
+          { error: "tailoredResume and coverLetterText are required for PDF compilation" },
+          { status: 400 },
+        );
       }
-      console.log("Using local Chrome path:", executablePath || "default");
-      browser = await puppeteerLocal.launch({
-        headless: true,
-        executablePath: executablePath
+
+      // Generate HTML files
+      console.log("Generating HTML templates...");
+      const cvHtmlContent = generateHtml(tailoredResume, theme || "classic");
+      const coverLetterHtmlContent = generateCoverLetterHtml(tailoredResume, coverLetterText, theme || "classic");
+
+      console.log("Launching Puppeteer...");
+      let browser;
+
+      if (process.env.NODE_ENV === "production" || process.env.VERCEL) {
+        console.log("Loading serverless Puppeteer (puppeteer-core & @sparticuz/chromium)...");
+        const puppeteerCore = await import("puppeteer-core");
+        const sparticuzChromium = (await import("@sparticuz/chromium")).default;
+
+        browser = await puppeteerCore.launch({
+          args: (sparticuzChromium as any).args,
+          defaultViewport: (sparticuzChromium as any).defaultViewport,
+          executablePath: await (sparticuzChromium as any).executablePath(),
+          headless: (sparticuzChromium as any).headless as boolean || true,
+        });
+      } else {
+        console.log("Loading local Puppeteer...");
+        const puppeteerLocal = await import("puppeteer");
+        
+        let executablePath = undefined;
+        try {
+          const p1 = "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe";
+          await fs.access(p1);
+          executablePath = p1;
+        } catch {
+          try {
+            const p2 = "C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe";
+            await fs.access(p2);
+            executablePath = p2;
+          } catch {
+            // Fallback to default
+          }
+        }
+        console.log("Using local Chrome path:", executablePath || "default");
+        browser = await puppeteerLocal.launch({
+          headless: true,
+          executablePath: executablePath
+        });
+      }
+      
+      // Render CV PDF
+      console.log("Rendering CV PDF...");
+      const cvPage = await browser.newPage();
+      await cvPage.setContent(cvHtmlContent, { waitUntil: "load" });
+      const cvPdfBuffer = await cvPage.pdf({
+        format: "A4",
+        printBackground: true,
+        margin: { top: "0", right: "0", bottom: "0", left: "0" },
+      });
+
+      // Render Cover Letter PDF
+      console.log("Rendering Cover Letter PDF...");
+      const clPage = await browser.newPage();
+      await clPage.setContent(coverLetterHtmlContent, { waitUntil: "load" });
+      const clPdfBuffer = await clPage.pdf({
+        format: "A4",
+        printBackground: true,
+        margin: { top: "0", right: "0", bottom: "0", left: "0" },
+      });
+
+      await browser.close();
+      console.log("PDFs successfully generated!");
+
+      // Convert buffers to base64 Data URIs
+      const cvBase64 = Buffer.from(cvPdfBuffer).toString("base64");
+      const cvUrl = `data:application/pdf;base64,${cvBase64}`;
+
+      const clBase64 = Buffer.from(clPdfBuffer).toString("base64");
+      const coverLetterUrl = `data:application/pdf;base64,${clBase64}`;
+
+      return NextResponse.json({
+        success: true,
+        cvUrl: cvUrl,
+        coverLetterUrl: coverLetterUrl,
       });
     }
-    
-    // Render CV PDF
-    console.log("Rendering CV PDF...");
-    const cvPage = await browser.newPage();
-    await cvPage.setContent(cvHtmlContent, { waitUntil: "load" });
-    const cvPdfBuffer = await cvPage.pdf({
-      format: "A4",
-      printBackground: true,
-      margin: { top: "0", right: "0", bottom: "0", left: "0" },
-    });
 
-    // Render Cover Letter PDF
-    console.log("Rendering Cover Letter PDF...");
-    const clPage = await browser.newPage();
-    await clPage.setContent(coverLetterHtmlContent, { waitUntil: "load" });
-    const clPdfBuffer = await clPage.pdf({
-      format: "A4",
-      printBackground: true,
-      margin: { top: "0", right: "0", bottom: "0", left: "0" },
-    });
-
-    await browser.close();
-    console.log("PDFs successfully generated!");
-
-    // Convert buffers to base64 Data URIs
-    const cvBase64 = Buffer.from(cvPdfBuffer).toString("base64");
-    const cvUrl = `data:application/pdf;base64,${cvBase64}`;
-
-    const clBase64 = Buffer.from(clPdfBuffer).toString("base64");
-    const coverLetterUrl = `data:application/pdf;base64,${clBase64}`;
-
-    // 5. Return actual PDF URLs to frontend
-    return NextResponse.json({
-      success: true,
-      cvUrl: cvUrl,
-      coverLetterUrl: coverLetterUrl,
-    });
-  } catch (error: SyntaxError | Error | unknown) {
+    return NextResponse.json(
+      { error: "Invalid action. Supported values are: generate-text, generate-pdf" },
+      { status: 400 },
+    );
+  } catch (error: any) {
     console.error("API Error:", error);
     return NextResponse.json(
-      { error: "Internal Server Error" },
+      { error: "Internal Server Error: " + error.message },
       { status: 500 },
     );
   }
