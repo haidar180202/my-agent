@@ -1,0 +1,162 @@
+import { NextResponse } from "next/server";
+import { GoogleGenAI } from "@google/genai";
+
+// Initialize Gemini Client
+const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "" });
+
+export async function POST(req: Request) {
+  try {
+    const body = await req.json();
+    const { action, jobDescription, targetRole, interviewType, question, userAnswer } = body;
+
+    if (!action) {
+      return NextResponse.json(
+        { error: "Action parameter (generate-questions or evaluate-answer) is required" },
+        { status: 400 },
+      );
+    }
+
+    if (!process.env.GEMINI_API_KEY) {
+      return NextResponse.json(
+        { error: "Gemini API key is missing in environment variables" },
+        { status: 500 },
+      );
+    }
+
+    // Action 1: Generate Mock Questions
+    if (action === "generate-questions") {
+      if (!jobDescription || !targetRole) {
+        return NextResponse.json(
+          { error: "Job description and target role are required" },
+          { status: 400 },
+        );
+      }
+
+      console.log(`Generating interview questions for role: ${targetRole}`);
+
+      const prompt = `
+You are an expert technical recruiter and interviewer.
+I will provide you with a Target Role and a Job Description.
+
+Your task is to generate exactly 5 realistic, challenging mock interview questions.
+The questions should match the specified target role and extract requirements from the Job Description.
+
+TARGET ROLE: ${targetRole}
+INTERVIEW TYPE: ${interviewType || "Mixed"}
+JOB DESCRIPTION:
+${jobDescription}
+
+Return ONLY a raw JSON array of 5 objects containing the following keys:
+[
+  {
+    "id": 1,
+    "question": "<The full question string, tailored to evaluate skills required by the JD>",
+    "category": "<e.g., Technical, Behavioral, System Design>",
+    "context": "<Short description of what specific skill or criteria this question targets>"
+  }
+]
+
+Do NOT wrap the response in markdown blocks (e.g., \`\`\`json). Just the raw JSON array string.
+`;
+
+      try {
+        const response = await ai.models.generateContent({
+          model: "gemini-2.5-flash",
+          contents: prompt,
+          config: {
+            temperature: 0.7, // Slightly higher for variation
+          },
+        });
+        const aiResponseText = response.text || "[]";
+        const cleanJsonString = aiResponseText
+          .replace(/```json/g, "")
+          .replace(/```/g, "")
+          .trim();
+          
+        const questions = JSON.parse(cleanJsonString);
+        return NextResponse.json({ success: true, questions });
+      } catch (err: any) {
+        console.error("Gemini Question Generation Error:", err);
+        return NextResponse.json(
+          { error: "Failed to generate questions: " + err.message },
+          { status: 500 },
+        );
+      }
+    }
+
+    // Action 2: Evaluate Answer
+    if (action === "evaluate-answer") {
+      if (!question || !userAnswer) {
+        return NextResponse.json(
+          { error: "Question and userAnswer are required for evaluation" },
+          { status: 400 },
+        );
+      }
+
+      console.log("Evaluating user answer...");
+
+      const prompt = `
+You are an expert interviewer evaluating a candidate's response.
+I will provide you with the Target Role, the Job Description, the Question, and the User's Answer.
+
+Evaluate the response objectively. Give constructive, professional, and detailed feedback.
+
+TARGET ROLE: ${targetRole || "Software Engineer"}
+JOB DESCRIPTION (For context):
+${jobDescription || "N/A"}
+
+QUESTION:
+${question}
+
+USER'S ANSWER:
+${userAnswer}
+
+Return ONLY a raw JSON object containing the following keys:
+{
+  "score": <An integer from 1 to 10 evaluating the quality and depth of the response>,
+  "feedback": "<A concise, constructive summary of the answer's quality, tone, and correctness>",
+  "strengths": ["<Array of 1 to 3 specific points the candidate covered extremely well>"],
+  "gaps": ["<Array of 1 to 3 key details, keywords, or considerations the candidate missed or could improve>"],
+  "modelAnswer": "<A highly detailed, professional, gold-standard answer to the question that highlights best practices>"
+}
+
+Do NOT wrap the response in markdown blocks (e.g., \`\`\`json). Just the raw JSON string.
+`;
+
+      try {
+        const response = await ai.models.generateContent({
+          model: "gemini-2.5-flash",
+          contents: prompt,
+          config: {
+            temperature: 0.3, // Lower temp for objective evaluation
+          },
+        });
+        const aiResponseText = response.text || "{}";
+        const cleanJsonString = aiResponseText
+          .replace(/```json/g, "")
+          .replace(/```/g, "")
+          .trim();
+          
+        const evaluation = JSON.parse(cleanJsonString);
+        return NextResponse.json({ success: true, evaluation });
+      } catch (err: any) {
+        console.error("Gemini Evaluation Error:", err);
+        return NextResponse.json(
+          { error: "Failed to evaluate answer: " + err.message },
+          { status: 500 },
+        );
+      }
+    }
+
+    return NextResponse.json(
+      { error: "Invalid action. Supported values are: generate-questions, evaluate-answer" },
+      { status: 400 },
+    );
+  } catch (error: any) {
+    console.error("API Error:", error);
+    return NextResponse.json(
+      { error: "Internal Server Error: " + error.message },
+      { status: 500 },
+    );
+  }
+}

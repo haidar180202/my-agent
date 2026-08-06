@@ -69,23 +69,26 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Coming Soon Tool 2 */}
-          <div className="relative flex flex-col justify-between p-8 rounded-3xl bg-zinc-100/50 dark:bg-zinc-900/20 border border-zinc-200/50 dark:border-zinc-800/30 backdrop-blur-sm opacity-70">
-            <div className="absolute top-6 right-6 px-3 py-1 text-xs font-semibold rounded-full bg-zinc-200 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400">
-              Coming Soon
-            </div>
-            <div className="flex flex-col gap-4">
-              <div className="w-14 h-14 flex items-center justify-center rounded-2xl bg-zinc-200 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 mb-4">
+          {/* Active Tool: Interview Prep */}
+          <Link href="/interview-prep" className="group relative flex flex-col justify-between p-8 rounded-3xl bg-white/60 dark:bg-zinc-900/40 border border-zinc-200/50 dark:border-zinc-800/50 backdrop-blur-xl shadow-lg hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 overflow-hidden">
+            <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/5 to-teal-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+            
+            <div className="relative z-10 flex flex-col gap-4">
+              <div className="w-14 h-14 flex items-center justify-center rounded-2xl bg-emerald-100 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400 mb-4 group-hover:scale-110 transition-transform duration-300">
                 <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                 </svg>
               </div>
-              <h2 className="text-2xl font-bold text-zinc-700 dark:text-zinc-300">Interview Prep</h2>
-              <p className="text-zinc-500 dark:text-zinc-500 leading-relaxed">
-                Mock technical interviews with voice-enabled AI evaluating your system design skills.
+              <h2 className="text-2xl font-bold">Interview Prep</h2>
+              <p className="text-zinc-600 dark:text-zinc-400 leading-relaxed">
+                Tailored technical, behavioral, and system design mock interviews with instant AI feedback.
               </p>
             </div>
-          </div>
+
+            <div className="relative z-10 mt-8 flex items-center text-emerald-600 dark:text-emerald-400 font-semibold group-hover:translate-x-2 transition-transform duration-300">
+              Launch App &rarr;
+            </div>
+          </Link>
 
         </section>
       </main>
