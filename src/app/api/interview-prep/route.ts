@@ -1,18 +1,71 @@
 import { NextResponse } from "next/server";
 import { GoogleGenAI } from "@google/genai";
+import fs from "fs/promises";
+import path from "path";
+import crypto from "crypto";
 
 // Initialize Gemini Client
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "" });
 
+// Password Verification Helper using existing master_cv.enc file
+async function verifyPassword(password: string): Promise<boolean> {
+  if (!password) return false;
+  
+  let dataPath = path.join(process.cwd(), "data", "master_cv.enc");
+  try {
+    await fs.access(dataPath);
+  } catch {
+    dataPath = path.join(process.cwd(), "my-project-some", "my-app", "my-agent", "data", "master_cv.enc");
+  }
+  
+  try {
+    const encryptedData = await fs.readFile(dataPath, "utf-8");
+    const parts = encryptedData.split(":");
+    const ivHex = parts.shift();
+    if (!ivHex) return false;
+
+    const iv = Buffer.from(ivHex, "hex");
+    const encryptedText = parts.join(":");
+
+    const key = crypto.scryptSync(password, "salt", 32);
+    const decipher = crypto.createDecipheriv("aes-256-cbc", key, iv);
+    let decrypted = decipher.update(encryptedText, "hex", "utf8");
+    decrypted += decipher.final("utf8");
+    
+    // If decryption succeeds and yields valid JSON, password is correct
+    JSON.parse(decrypted);
+    return true;
+  } catch (err) {
+    console.error("Password verification failed:", err);
+    return false;
+  }
+}
+
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { action, jobDescription, targetRole, interviewType, question, userAnswer } = body;
+    const { action, password, jobDescription, targetRole, interviewType, question, userAnswer } = body;
 
     if (!action) {
       return NextResponse.json(
         { error: "Action parameter (generate-questions or evaluate-answer) is required" },
         { status: 400 },
+      );
+    }
+
+    if (!password) {
+      return NextResponse.json(
+        { error: "Decryption password is required to access the Interview Prep module" },
+        { status: 401 },
+      );
+    }
+
+    // Verify Password by trying to decrypt master_cv.enc
+    const isAuthorized = await verifyPassword(password);
+    if (!isAuthorized) {
+      return NextResponse.json(
+        { error: "Invalid decryption password. Access Denied." },
+        { status: 401 },
       );
     }
 
