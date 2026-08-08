@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 export default function AtsGeneratePage() {
   const [step, setStep] = useState<"input" | "edit" | "preview">("input");
@@ -24,6 +24,38 @@ export default function AtsGeneratePage() {
   // Tab states
   const [activeTab, setActiveTab] = useState<"cv" | "coverLetter">("cv");
   const [editorTab, setEditorTab] = useState<"resume" | "coverLetter">("resume");
+
+  // Re-evaluation loader
+  const [evaluatingScore, setEvaluatingScore] = useState(false);
+
+  // Save to history modal
+  const [showSaveModal, setShowSaveModal] = useState(false);
+  const [companyName, setCompanyName] = useState("");
+
+  // Preload application from History page via sessionStorage
+  useEffect(() => {
+    try {
+      const preloadRaw = sessionStorage.getItem("preload-ats");
+      if (preloadRaw) {
+        const data = JSON.parse(preloadRaw);
+        setJobDescription(data.jobDescription || "");
+        setTargetRole(data.targetRole || "");
+        setTheme(data.theme || "classic");
+        setTailoredResume(data.tailoredResume || null);
+        setCoverLetterText(data.coverLetterText || "");
+        setMatchScore(data.matchScore !== undefined ? data.matchScore : null);
+        
+        // Extract missing keywords or evaluate default
+        setMissingKeywords(data.missingKeywords || []);
+        setStep("edit");
+        
+        // Clean up session storage so it doesn't stick around on page reload
+        sessionStorage.removeItem("preload-ats");
+      }
+    } catch (err) {
+      console.error("Failed to preload history item:", err);
+    }
+  }, []);
 
   // Step 1: Request tailored text from Gemini
   const handleGenerateText = async (e: React.FormEvent) => {
@@ -95,6 +127,70 @@ export default function AtsGeneratePage() {
       setError(err.message);
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Re-evaluate score after manual edits
+  const handleReEvaluateScore = async () => {
+    setEvaluatingScore(true);
+    setError("");
+    try {
+      const res = await fetch("/api/generate-ats", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "re-evaluate-score",
+          tailoredResume,
+          jobDescription,
+        }),
+      });
+      
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.error || "Failed to re-evaluate score");
+      }
+      
+      const data = await res.json();
+      setMatchScore(data.matchScore);
+      setMissingKeywords(data.missingKeywords);
+    } catch (err: any) {
+      console.error(err);
+      setError("Re-evaluation failed: " + err.message);
+    } finally {
+      setEvaluatingScore(false);
+    }
+  };
+
+  // Save current tailored CV & Cover letter to LocalStorage
+  const handleSaveToHistory = () => {
+    if (!companyName.trim()) return;
+    
+    try {
+      const historyRaw = localStorage.getItem("my-agent-history");
+      const history = historyRaw ? JSON.parse(historyRaw) : [];
+      
+      const newItem = {
+        id: Date.now().toString(),
+        timestamp: new Date().toISOString(),
+        companyName: companyName.trim(),
+        targetRole,
+        theme,
+        matchScore,
+        jobDescription,
+        tailoredResume,
+        coverLetterText,
+        missingKeywords
+      };
+      
+      history.unshift(newItem);
+      localStorage.setItem("my-agent-history", JSON.stringify(history));
+      
+      setShowSaveModal(false);
+      setCompanyName("");
+      alert(`Application for ${newItem.companyName} saved successfully to History!`);
+    } catch (err: any) {
+      console.error(err);
+      alert("Failed to save to history: " + err.message);
     }
   };
 
@@ -293,7 +389,7 @@ export default function AtsGeneratePage() {
                   rows={8}
                   value={jobDescription}
                   onChange={(e) => setJobDescription(e.target.value)}
-                  className="p-3 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-transparent focus:ring-2 focus:ring-blue-500 outline-none transition-all resize-y"
+                  className="p-3 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-transparent focus:ring-2 focus:ring-blue-500 outline-none transition-all resize-y text-sm leading-relaxed"
                   placeholder="Paste the full job description here..."
                 />
               </div>
@@ -301,7 +397,7 @@ export default function AtsGeneratePage() {
               <button
                 type="submit"
                 disabled={loading || !jobDescription || !targetRole || !password}
-                className="w-full sm:w-auto self-start px-6 py-3 rounded-full bg-blue-600 hover:bg-blue-700 text-white font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                className="w-full sm:w-auto self-start px-6 py-3 rounded-full bg-blue-600 hover:bg-blue-700 text-white font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 cursor-pointer"
               >
                 {loading ? (
                   <>
@@ -636,6 +732,26 @@ export default function AtsGeneratePage() {
                         ? "Decent match, but you can further boost score by weaving in missing keywords below."
                         : "Low alignment. Try rewriting achievements to incorporate critical job terms."}
                     </p>
+
+                    {/* Re-evaluate score trigger */}
+                    <button
+                      type="button"
+                      disabled={evaluatingScore}
+                      onClick={handleReEvaluateScore}
+                      className="mt-2 text-xs font-semibold text-emerald-600 dark:text-emerald-400 hover:underline flex items-center gap-1 cursor-pointer disabled:opacity-50"
+                    >
+                      {evaluatingScore ? (
+                        <>
+                          <svg className="animate-spin h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" xmlns="http://www.w3.org/2050/svg" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                          </svg>
+                          Evaluating...
+                        </>
+                      ) : (
+                        "⟳ Re-Evaluate ATS Score"
+                      )}
+                    </button>
                   </div>
                 )}
 
@@ -699,7 +815,7 @@ export default function AtsGeneratePage() {
 
             <div className="flex flex-col gap-6 bg-white dark:bg-zinc-900 p-8 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-sm">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-zinc-200 dark:border-zinc-800 pb-5">
-                <div className="flex gap-2">
+                <div className="flex gap-2 animate-fade-in">
                   <button
                     onClick={() => setActiveTab("cv")}
                     className={`px-4 py-2 rounded-lg font-medium text-sm transition-colors cursor-pointer ${
@@ -722,7 +838,16 @@ export default function AtsGeneratePage() {
                   </button>
                 </div>
 
-                <div className="flex gap-2">
+                <div className="flex gap-2 items-center">
+                  <button
+                    onClick={() => setShowSaveModal(true)}
+                    className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-medium text-sm transition-colors flex items-center gap-1.5 cursor-pointer shadow-sm"
+                  >
+                    💾 Save to History
+                  </button>
+                  
+                  <div className="h-6 w-[1px] bg-zinc-200 dark:bg-zinc-800 mx-1" />
+
                   {activeTab === "cv" && result.cvUrl && (
                     <a
                       href={result.cvUrl}
@@ -755,6 +880,42 @@ export default function AtsGeneratePage() {
           </>
         )}
       </main>
+
+      {/* Save to History Modal Dialog Overlay */}
+      {showSaveModal && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50 backdrop-blur-sm animate-fade-in">
+          <div className="bg-white dark:bg-zinc-900 p-6 rounded-3xl max-w-md w-full border border-zinc-200/80 dark:border-zinc-800/80 shadow-2xl flex flex-col gap-4">
+            <h3 className="text-xl font-bold">Save to Application History</h3>
+            <p className="text-xs text-zinc-500 leading-relaxed">
+              Enter the name of the company or organization you are applying to. This will help you track this customized CV and Cover letter in your history dashboard.
+            </p>
+            <input
+              type="text"
+              value={companyName}
+              onChange={(e) => setCompanyName(e.target.value)}
+              className="p-3 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-transparent text-sm outline-none focus:ring-2 focus:ring-emerald-500 w-full"
+              placeholder="e.g. Google, Stripe, SQE"
+              required
+              autoFocus
+            />
+            <div className="flex justify-end gap-3 mt-2">
+              <button
+                onClick={() => { setShowSaveModal(false); setCompanyName(""); }}
+                className="px-4 py-2 text-sm font-semibold rounded-lg text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800 cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSaveToHistory}
+                disabled={!companyName.trim()}
+                className="px-4 py-2 text-sm font-semibold rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white disabled:opacity-50 cursor-pointer"
+              >
+                Save to History
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

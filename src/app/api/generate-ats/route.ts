@@ -307,6 +307,71 @@ Do NOT wrap the response in markdown blocks (e.g., \`\`\`json). Just the raw JSO
       });
     }
 
+    // Phase 1.5: Re-evaluate Match Score only
+    if (action === "re-evaluate-score") {
+      if (!tailoredResume || !jobDescription) {
+        return NextResponse.json(
+          { error: "tailoredResume and jobDescription are required for re-evaluation" },
+          { status: 400 },
+        );
+      }
+
+      console.log("Re-evaluating edited CV score...");
+      const prompt = `
+You are an expert ATS (Applicant Tracking System) parser and evaluator.
+Evaluate the following Resume JSON against the Job Description and calculate the match score (percentage) and identify any critical technical keywords that are still missing or not emphasized.
+
+JOB DESCRIPTION:
+${jobDescription}
+
+RESUME (JSON):
+${JSON.stringify(tailoredResume)}
+
+Return ONLY a raw JSON object with the following exact keys:
+{
+  "matchScore": <integer between 0 and 100 representing the ATS match score of the resume>,
+  "missingKeywords": [<array of critical technical keywords/skills from the Job Description that are still missing or not emphasized in the resume>]
+}
+
+Do NOT wrap the response in markdown blocks (e.g., \`\`\`json). Just the raw JSON string.
+`;
+
+      if (process.env.GEMINI_API_KEY) {
+        try {
+          const response = await ai.models.generateContent({
+            model: "gemini-2.5-flash",
+            contents: prompt,
+            config: {
+              temperature: 0.3,
+            },
+          });
+          const aiResponseText = response.text || "{}";
+          const cleanJsonString = aiResponseText
+            .replace(/```json/g, "")
+            .replace(/```/g, "")
+            .trim();
+            
+          const responseObj = JSON.parse(cleanJsonString);
+          return NextResponse.json({
+            success: true,
+            matchScore: responseObj.matchScore || 75,
+            missingKeywords: responseObj.missingKeywords || [],
+          });
+        } catch (aiErr: any) {
+          console.error("Gemini AI Error:", aiErr);
+          return NextResponse.json(
+            { error: "Gemini AI evaluation failed: " + aiErr.message },
+            { status: 500 },
+          );
+        }
+      } else {
+        return NextResponse.json(
+          { error: "Gemini API key is missing in environment variables" },
+          { status: 500 },
+        );
+      }
+    }
+
     // Phase 2: Compile Final PDF
     if (action === "generate-pdf") {
       if (!tailoredResume || !coverLetterText) {
