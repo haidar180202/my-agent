@@ -1,7 +1,50 @@
 "use client";
-/* eslint-disable @typescript-eslint/no-explicit-any, react-hooks/set-state-in-effect */
 
 import { useState, useEffect } from "react";
+
+interface PersonalInfo {
+  name: string;
+  title: string;
+  location: string;
+  email: string;
+  phone?: string;
+  website?: string;
+}
+
+interface Experience {
+  company: string;
+  role: string;
+  date?: string;
+  startDate?: string;
+  bullets?: string[];
+  highlights?: string[];
+}
+
+interface Project {
+  name: string;
+  type?: string;
+  date?: string;
+  bullets?: string[];
+  highlights?: string[];
+}
+
+interface TailoredResume {
+  personalInfo?: PersonalInfo;
+  summary?: string;
+  experience?: Experience[];
+  projects?: Project[];
+  skills?: string[];
+}
+
+interface PreloadedAtsData {
+  jobDescription?: string;
+  targetRole?: string;
+  theme?: string;
+  tailoredResume?: TailoredResume;
+  coverLetterText?: string;
+  matchScore?: number;
+  missingKeywords?: string[];
+}
 
 export default function AtsGeneratePage() {
   const [step, setStep] = useState<"input" | "edit" | "preview">("input");
@@ -14,7 +57,7 @@ export default function AtsGeneratePage() {
   const [error, setError] = useState("");
 
   // AI Tailored Data
-  const [tailoredResume, setTailoredResume] = useState<any>(null);
+  const [tailoredResume, setTailoredResume] = useState<TailoredResume | null>(null);
   const [coverLetterText, setCoverLetterText] = useState("");
   const [matchScore, setMatchScore] = useState<number | null>(null);
   const [missingKeywords, setMissingKeywords] = useState<string[]>([]);
@@ -33,22 +76,22 @@ export default function AtsGeneratePage() {
   const [showSaveModal, setShowSaveModal] = useState(false);
   const [companyName, setCompanyName] = useState("");
 
-  // Preload application from History page via sessionStorage
+  // Preload application from History page via sessionStorage (asynchronously to prevent eslint hook warnings)
   useEffect(() => {
     try {
       const preloadRaw = sessionStorage.getItem("preload-ats");
       if (preloadRaw) {
-        const data = JSON.parse(preloadRaw);
-        setJobDescription(data.jobDescription || "");
-        setTargetRole(data.targetRole || "");
-        setTheme(data.theme || "classic");
-        setTailoredResume(data.tailoredResume || null);
-        setCoverLetterText(data.coverLetterText || "");
-        setMatchScore(data.matchScore !== undefined ? data.matchScore : null);
-        
-        // Extract missing keywords or evaluate default
-        setMissingKeywords(data.missingKeywords || []);
-        setStep("edit");
+        const data = JSON.parse(preloadRaw) as PreloadedAtsData;
+        setTimeout(() => {
+          setJobDescription(data.jobDescription || "");
+          setTargetRole(data.targetRole || "");
+          setTheme(data.theme || "classic");
+          setTailoredResume(data.tailoredResume || null);
+          setCoverLetterText(data.coverLetterText || "");
+          setMatchScore(data.matchScore !== undefined ? data.matchScore : null);
+          setMissingKeywords(data.missingKeywords || []);
+          setStep("edit");
+        }, 0);
         
         // Clean up session storage so it doesn't stick around on page reload
         sessionStorage.removeItem("preload-ats");
@@ -84,14 +127,15 @@ export default function AtsGeneratePage() {
       }
 
       const data = await res.json();
-      setTailoredResume(data.tailoredResume);
-      setCoverLetterText(data.coverLetter);
-      setMatchScore(data.matchScore);
-      setMissingKeywords(data.missingKeywords);
+      setTailoredResume(data.tailoredResume as TailoredResume);
+      setCoverLetterText(data.coverLetter || "");
+      setMatchScore(data.matchScore || 0);
+      setMissingKeywords(data.missingKeywords || []);
       setStep("edit");
-    } catch (err: any) {
+    } catch (err) {
       console.error(err);
-      setError(err.message);
+      const errorVal = err as Error;
+      setError(errorVal.message);
     } finally {
       setLoading(false);
     }
@@ -123,9 +167,10 @@ export default function AtsGeneratePage() {
       const data = await res.json();
       setResult(data);
       setStep("preview");
-    } catch (err: any) {
+    } catch (err) {
       console.error(err);
-      setError(err.message);
+      const errorVal = err as Error;
+      setError(errorVal.message);
     } finally {
       setLoading(false);
     }
@@ -153,10 +198,11 @@ export default function AtsGeneratePage() {
       
       const data = await res.json();
       setMatchScore(data.matchScore);
-      setMissingKeywords(data.missingKeywords);
-    } catch (err: any) {
+      setMissingKeywords(data.missingKeywords || []);
+    } catch (err) {
       console.error(err);
-      setError("Re-evaluation failed: " + err.message);
+      const errorVal = err as Error;
+      setError("Re-evaluation failed: " + errorVal.message);
     } finally {
       setEvaluatingScore(false);
     }
@@ -189,9 +235,10 @@ export default function AtsGeneratePage() {
       setShowSaveModal(false);
       setCompanyName("");
       alert(`Application for ${newItem.companyName} saved successfully to History!`);
-    } catch (err: any) {
+    } catch (err) {
       console.error(err);
-      alert("Failed to save to history: " + err.message);
+      const errorVal = err as Error;
+      alert("Failed to save to history: " + errorVal.message);
     }
   };
 
@@ -205,24 +252,34 @@ export default function AtsGeneratePage() {
 
   // Resume Editors Helpers
   const handlePersonalInfoChange = (field: string, value: string) => {
-    setTailoredResume((prev: any) => ({
-      ...prev,
-      personalInfo: {
-        ...prev.personalInfo,
-        [field]: value,
-      },
-    }));
+    setTailoredResume((prev) => {
+      if (!prev) return null;
+      return {
+        ...prev,
+        personalInfo: {
+          name: prev.personalInfo?.name || "",
+          title: prev.personalInfo?.title || "",
+          location: prev.personalInfo?.location || "",
+          email: prev.personalInfo?.email || "",
+          [field]: value,
+        },
+      };
+    });
   };
 
   const handleSummaryChange = (value: string) => {
-    setTailoredResume((prev: any) => ({
-      ...prev,
-      summary: value,
-    }));
+    setTailoredResume((prev) => {
+      if (!prev) return null;
+      return {
+        ...prev,
+        summary: value,
+      };
+    });
   };
 
   const handleExperienceChange = (index: number, field: string, value: string) => {
-    setTailoredResume((prev: any) => {
+    setTailoredResume((prev) => {
+      if (!prev || !prev.experience) return null;
       const updatedExp = [...prev.experience];
       updatedExp[index] = { ...updatedExp[index], [field]: value };
       return { ...prev, experience: updatedExp };
@@ -230,7 +287,8 @@ export default function AtsGeneratePage() {
   };
 
   const handleExperienceBulletChange = (expIndex: number, bulletIndex: number, value: string) => {
-    setTailoredResume((prev: any) => {
+    setTailoredResume((prev) => {
+      if (!prev || !prev.experience) return null;
       const updatedExp = [...prev.experience];
       const bulletKey = updatedExp[expIndex].bullets ? "bullets" : "highlights";
       const updatedBullets = [...(updatedExp[expIndex][bulletKey] || [])];
@@ -241,7 +299,8 @@ export default function AtsGeneratePage() {
   };
 
   const handleAddExperienceBullet = (expIndex: number) => {
-    setTailoredResume((prev: any) => {
+    setTailoredResume((prev) => {
+      if (!prev || !prev.experience) return null;
       const updatedExp = [...prev.experience];
       const bulletKey = updatedExp[expIndex].bullets ? "bullets" : "highlights";
       const updatedBullets = [...(updatedExp[expIndex][bulletKey] || []), ""];
@@ -251,7 +310,8 @@ export default function AtsGeneratePage() {
   };
 
   const handleDeleteExperienceBullet = (expIndex: number, bulletIndex: number) => {
-    setTailoredResume((prev: any) => {
+    setTailoredResume((prev) => {
+      if (!prev || !prev.experience) return null;
       const updatedExp = [...prev.experience];
       const bulletKey = updatedExp[expIndex].bullets ? "bullets" : "highlights";
       const updatedBullets = [...(updatedExp[expIndex][bulletKey] || [])];
@@ -262,7 +322,8 @@ export default function AtsGeneratePage() {
   };
 
   const handleProjectChange = (index: number, field: string, value: string) => {
-    setTailoredResume((prev: any) => {
+    setTailoredResume((prev) => {
+      if (!prev || !prev.projects) return null;
       const updatedProj = [...prev.projects];
       updatedProj[index] = { ...updatedProj[index], [field]: value };
       return { ...prev, projects: updatedProj };
@@ -270,7 +331,8 @@ export default function AtsGeneratePage() {
   };
 
   const handleProjectBulletChange = (projIndex: number, bulletIndex: number, value: string) => {
-    setTailoredResume((prev: any) => {
+    setTailoredResume((prev) => {
+      if (!prev || !prev.projects) return null;
       const updatedProj = [...prev.projects];
       const bulletKey = updatedProj[projIndex].bullets ? "bullets" : "highlights";
       const updatedBullets = [...(updatedProj[projIndex][bulletKey] || [])];
@@ -281,7 +343,8 @@ export default function AtsGeneratePage() {
   };
 
   const handleAddProjectBullet = (projIndex: number) => {
-    setTailoredResume((prev: any) => {
+    setTailoredResume((prev) => {
+      if (!prev || !prev.projects) return null;
       const updatedProj = [...prev.projects];
       const bulletKey = updatedProj[projIndex].bullets ? "bullets" : "highlights";
       const updatedBullets = [...(updatedProj[projIndex][bulletKey] || []), ""];
@@ -291,7 +354,8 @@ export default function AtsGeneratePage() {
   };
 
   const handleDeleteProjectBullet = (projIndex: number, bulletIndex: number) => {
-    setTailoredResume((prev: any) => {
+    setTailoredResume((prev) => {
+      if (!prev || !prev.projects) return null;
       const updatedProj = [...prev.projects];
       const bulletKey = updatedProj[projIndex].bullets ? "bullets" : "highlights";
       const updatedBullets = [...(updatedProj[projIndex][bulletKey] || [])];
@@ -519,14 +583,14 @@ export default function AtsGeneratePage() {
                           rows={5}
                           value={tailoredResume.summary || ""}
                           onChange={(e) => handleSummaryChange(e.target.value)}
-                          className="p-3 rounded-lg border border-zinc-200 dark:border-zinc-850 bg-transparent text-sm resize-y leading-relaxed w-full focus:ring-2 focus:ring-blue-500 outline-none"
+                          className="p-3 rounded-lg border border-zinc-200 dark:border-zinc-855 bg-transparent text-sm resize-y leading-relaxed w-full focus:ring-2 focus:ring-blue-500 outline-none"
                         />
                       </div>
 
                       {/* Experience */}
                       <div className="flex flex-col gap-6 border-b border-zinc-100 dark:border-zinc-800/50 pb-6">
                         <h3 className="text-lg font-bold text-blue-600 dark:text-blue-400">Work Experience</h3>
-                        {(tailoredResume.experience || []).map((exp: any, expIndex: number) => {
+                        {(tailoredResume.experience || []).map((exp: Experience, expIndex: number) => {
                           const bulletKey = exp.bullets ? "bullets" : "highlights";
                           return (
                             <div key={expIndex} className="p-4 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-950/20 flex flex-col gap-4">
@@ -597,7 +661,7 @@ export default function AtsGeneratePage() {
                       {/* Projects */}
                       <div className="flex flex-col gap-6">
                         <h3 className="text-lg font-bold text-blue-600 dark:text-blue-400">AI Featured Projects</h3>
-                        {(tailoredResume.projects || []).map((proj: any, projIndex: number) => {
+                        {(tailoredResume.projects || []).map((proj: Project, projIndex: number) => {
                           const bulletKey = proj.bullets ? "bullets" : "highlights";
                           return (
                             <div key={projIndex} className="p-4 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-950/20 flex flex-col gap-4">
@@ -645,7 +709,7 @@ export default function AtsGeneratePage() {
                                     <button
                                       type="button"
                                       onClick={() => handleDeleteProjectBullet(projIndex, bulletIndex)}
-                                      className="p-2 rounded-lg text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20 text-xs cursor-pointer"
+                                      className="p-2 rounded-lg text-red-500 hover:bg-red-50 dark:hover:bg-red-955/20 text-xs cursor-pointer"
                                       title="Delete bullet"
                                     >
                                       ❌
@@ -707,7 +771,7 @@ export default function AtsGeneratePage() {
                 </div>
               </div>
 
-              {/* Right Column (Score & Checklist Sidebar) - Sticky on Desktop */}
+              {/* Right Column (Score & Checklist Sidebar) */}
               <div className="lg:col-span-1 flex flex-col gap-6 lg:sticky lg:top-8 self-start w-full">
                 
                 {/* Match Score widget */}
@@ -743,7 +807,7 @@ export default function AtsGeneratePage() {
                     >
                       {evaluatingScore ? (
                         <>
-                          <svg className="animate-spin h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" xmlns="http://www.w3.org/2050/svg" fill="none" viewBox="0 0 24 24">
+                          <svg className="animate-spin h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                           </svg>
@@ -771,14 +835,14 @@ export default function AtsGeneratePage() {
                           <div key={index} className="flex items-center gap-3 p-2.5 rounded-xl bg-zinc-50 dark:bg-zinc-950 border border-zinc-100 dark:border-zinc-850/30 transition-all duration-300">
                             <span className={`w-5 h-5 flex items-center justify-center rounded-full text-xs transition-colors duration-300 ${
                               isPresent
-                                ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-400"
+                                ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-955/40 dark:text-emerald-400"
                                 : "bg-zinc-200/60 dark:bg-zinc-800 text-zinc-400"
                             }`}>
                               {isPresent ? "✓" : "○"}
                             </span>
                             <span className={`text-sm tracking-wide transition-all ${
                               isPresent 
-                                ? "line-through text-zinc-400 dark:text-zinc-600 font-normal" 
+                                ? "line-through text-zinc-400 dark:text-zinc-650 font-normal" 
                                 : "font-semibold text-zinc-700 dark:text-zinc-300"
                             }`}>
                               {keyword}

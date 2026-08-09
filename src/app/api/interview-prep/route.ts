@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { NextResponse } from "next/server";
 import { GoogleGenAI } from "@google/genai";
 import fs from "fs/promises";
@@ -129,10 +128,11 @@ Do NOT wrap the response in markdown blocks (e.g., \`\`\`json). Just the raw JSO
           
         const questions = JSON.parse(cleanJsonString);
         return NextResponse.json({ success: true, questions });
-      } catch (err: any) {
+      } catch (err) {
         console.error("Gemini Question Generation Error:", err);
+        const errorVal = err as Error;
         return NextResponse.json(
-          { error: "Failed to generate questions: " + err.message },
+          { error: "Failed to generate questions: " + errorVal.message },
           { status: 500 },
         );
       }
@@ -193,10 +193,11 @@ Do NOT wrap the response in markdown blocks (e.g., \`\`\`json). Just the raw JSO
           
         const evaluation = JSON.parse(cleanJsonString);
         return NextResponse.json({ success: true, evaluation });
-      } catch (err: any) {
+      } catch (err) {
         console.error("Gemini Evaluation Error:", err);
+        const errorVal = err as Error;
         return NextResponse.json(
-          { error: "Failed to evaluate answer: " + err.message },
+          { error: "Failed to evaluate answer: " + errorVal.message },
           { status: 500 },
         );
       }
@@ -206,10 +207,11 @@ Do NOT wrap the response in markdown blocks (e.g., \`\`\`json). Just the raw JSO
       { error: "Invalid action. Supported values are: generate-questions, evaluate-answer" },
       { status: 400 },
     );
-  } catch (error: any) {
+  } catch (error) {
     console.error("API Error:", error);
+    const errorVal = error as Error;
     return NextResponse.json(
-      { error: "Internal Server Error: " + error.message },
+      { error: "Internal Server Error: " + errorVal.message },
       { status: 500 },
     );
   }

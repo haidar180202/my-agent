@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { NextResponse } from "next/server";
 import fs from "fs/promises";
 import path from "path";
@@ -8,8 +7,69 @@ import crypto from "crypto";
 // Initialize Gemini Client
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "" });
 
+interface PersonalInfo {
+  name?: string;
+  title?: string;
+  location?: string;
+  email?: string;
+  phone?: string;
+  website?: string;
+  linkedin?: string;
+  portfolio?: string;
+}
+
+interface Experience {
+  company?: string;
+  role?: string;
+  date?: string;
+  startDate?: string;
+  endDate?: string;
+  bullets?: string[];
+  highlights?: string[];
+}
+
+interface Project {
+  name?: string;
+  type?: string;
+  date?: string;
+  bullets?: string[];
+  highlights?: string[];
+}
+
+interface Education {
+  degree?: string;
+  school?: string;
+  institution?: string;
+  date?: string;
+  startDate?: string;
+  endDate?: string;
+}
+
+interface TailoredResume {
+  personalInfo?: PersonalInfo;
+  summary?: string;
+  experience?: Experience[];
+  projects?: Project[];
+  skills?: string[] | Record<string, string[]>;
+  education?: Education[];
+}
+
+interface ChromiumInterface {
+  args: string[];
+  defaultViewport: {
+    width?: number;
+    height?: number;
+    deviceScaleFactor?: number;
+    isMobile?: boolean;
+    hasTouch?: boolean;
+    isLandscape?: boolean;
+  };
+  executablePath: () => Promise<string>;
+  headless: boolean | string;
+}
+
 // HTML Generator Helper
-function generateHtml(resumeData: any, theme = "classic") {
+function generateHtml(resumeData: TailoredResume, theme = "classic") {
   let primaryColor = "#000000";
   let fontStack = "'Helvetica Neue', Helvetica, Arial, sans-serif";
   let sectionBorder = "1px solid #000";
@@ -34,8 +94,8 @@ function generateHtml(resumeData: any, theme = "classic") {
   const skillsList = Array.isArray(resumeData.skills)
     ? resumeData.skills
     : typeof resumeData.skills === "object" && resumeData.skills !== null
-    ? Object.values(resumeData.skills).flat()
-    : [];
+      ? Object.values(resumeData.skills).flat()
+      : [];
 
   return `
   <!DOCTYPE html>
@@ -73,7 +133,7 @@ function generateHtml(resumeData: any, theme = "classic") {
       <div class="section-title">PROFESSIONAL EXPERIENCE</div>
       ${(resumeData.experience || [])
         .map(
-          (exp: any) => `
+          (exp: Experience) => `
           <div class="job-header">
               <span>${exp.company || ""} — <span class="job-title">${exp.role || ""}</span></span>
               <span class="job-date">${exp.date || `${exp.startDate || ""} - ${exp.endDate || ""}`}</span>
@@ -88,7 +148,7 @@ function generateHtml(resumeData: any, theme = "classic") {
       <div class="section-title">FEATURED AI PROJECTS</div>
       ${(resumeData.projects || [])
         .map(
-          (proj: any) => `
+          (proj: Project) => `
           <div class="job-header">
               <span>${proj.name || ""} ${proj.type ? `— <span class="job-title">${proj.type}</span>` : ""}</span>
               <span class="job-date">${proj.date || ""}</span>
@@ -103,7 +163,7 @@ function generateHtml(resumeData: any, theme = "classic") {
       <div class="section-title">EDUCATION</div>
       ${(resumeData.education || [])
         .map(
-          (edu: any) => `
+          (edu: Education) => `
           <div class="job-header">
               <span><strong>${edu.degree || ""}</strong></span>
               <span class="job-date">${edu.school || edu.institution || ""} (${edu.date || `${edu.startDate || ""} - ${edu.endDate || ""}`})</span>
@@ -117,7 +177,11 @@ function generateHtml(resumeData: any, theme = "classic") {
 }
 
 // Cover Letter HTML Generator Helper
-function generateCoverLetterHtml(resumeData: any, coverLetterText: string, theme = "classic") {
+function generateCoverLetterHtml(
+  resumeData: TailoredResume,
+  coverLetterText: string,
+  theme = "classic",
+) {
   let primaryColor = "#000000";
   let fontStack = "'Helvetica Neue', Helvetica, Arial, sans-serif";
   let accentColor = "#333";
@@ -151,12 +215,12 @@ function generateCoverLetterHtml(resumeData: any, coverLetterText: string, theme
       <div class="sender-info">
           ${resumeData.personalInfo?.name || "MUHAMMAD HAIDAR SHAHAB"}<br/>
           <span style="font-weight: normal; color: #555;">
-            ${resumeData.personalInfo?.location}<br/>
-            ${resumeData.personalInfo?.phone} | ${resumeData.personalInfo?.email}
+            ${resumeData.personalInfo?.location || ""}<br/>
+            ${resumeData.personalInfo?.phone || ""} | ${resumeData.personalInfo?.email || ""}
           </span>
       </div>
       
-      <div class="date">${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</div>
+      <div class="date">${new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })}</div>
       
       <div class="recipient-info">
           <strong>To the Hiring Team / Recruiter</strong>
@@ -173,11 +237,21 @@ function generateCoverLetterHtml(resumeData: any, coverLetterText: string, theme
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { action, jobDescription, targetRole, password, theme, tailoredResume, coverLetterText } = body;
+    const {
+      action,
+      jobDescription,
+      targetRole,
+      password,
+      theme,
+      tailoredResume,
+      coverLetterText,
+    } = body;
 
     if (!action) {
       return NextResponse.json(
-        { error: "Action parameter (generate-text or generate-pdf) is required" },
+        {
+          error: "Action parameter (generate-text or generate-pdf) is required",
+        },
         { status: 400 },
       );
     }
@@ -186,7 +260,10 @@ export async function POST(req: Request) {
     if (action === "generate-text") {
       if (!jobDescription || !targetRole || !password) {
         return NextResponse.json(
-          { error: "Job description, target role, and decryption password are required" },
+          {
+            error:
+              "Job description, target role, and decryption password are required",
+          },
           { status: 400 },
         );
       }
@@ -196,7 +273,14 @@ export async function POST(req: Request) {
       try {
         await fs.access(dataPath);
       } catch {
-        dataPath = path.join(process.cwd(), "my-project-some", "my-app", "my-agent", "data", "master_cv.enc");
+        dataPath = path.join(
+          process.cwd(),
+          "my-project-some",
+          "my-app",
+          "my-agent",
+          "data",
+          "master_cv.enc",
+        );
       }
       const encryptedData = await fs.readFile(dataPath, "utf-8");
 
@@ -259,7 +343,7 @@ Do NOT wrap the response in markdown blocks (e.g., \`\`\`json). Just the raw JSO
 
       // 3. Call Gemini API
       console.log("Calling Gemini API...");
-      let tailoredResumeResult = JSON.parse(masterCvRaw);
+      let tailoredResumeResult = JSON.parse(masterCvRaw) as TailoredResume;
       let coverLetterTextResult = "";
       let matchScoreResult = 75;
       let missingKeywordsResult: string[] = [];
@@ -278,17 +362,20 @@ Do NOT wrap the response in markdown blocks (e.g., \`\`\`json). Just the raw JSO
             .replace(/```json/g, "")
             .replace(/```/g, "")
             .trim();
-            
+
           const responseObj = JSON.parse(cleanJsonString);
-          tailoredResumeResult = responseObj.tailoredResume;
-          coverLetterTextResult = responseObj.coverLetter;
+          tailoredResumeResult = responseObj.tailoredResume as TailoredResume;
+          coverLetterTextResult = responseObj.coverLetter || "";
           matchScoreResult = responseObj.matchScore || 75;
           missingKeywordsResult = responseObj.missingKeywords || [];
-          console.log("Successfully tailored resume and calculated match score using Gemini!");
-        } catch (aiErr: any) {
+          console.log(
+            "Successfully tailored resume and calculated match score using Gemini!",
+          );
+        } catch (aiErr) {
           console.error("Gemini AI Error:", aiErr);
+          const errorVal = aiErr as Error;
           return NextResponse.json(
-            { error: "Gemini AI generation failed: " + aiErr.message },
+            { error: "Gemini AI generation failed: " + errorVal.message },
             { status: 500 },
           );
         }
@@ -312,7 +399,10 @@ Do NOT wrap the response in markdown blocks (e.g., \`\`\`json). Just the raw JSO
     if (action === "re-evaluate-score") {
       if (!tailoredResume || !jobDescription) {
         return NextResponse.json(
-          { error: "tailoredResume and jobDescription are required for re-evaluation" },
+          {
+            error:
+              "tailoredResume and jobDescription are required for re-evaluation",
+          },
           { status: 400 },
         );
       }
@@ -351,17 +441,18 @@ Do NOT wrap the response in markdown blocks (e.g., \`\`\`json). Just the raw JSO
             .replace(/```json/g, "")
             .replace(/```/g, "")
             .trim();
-            
+
           const responseObj = JSON.parse(cleanJsonString);
           return NextResponse.json({
             success: true,
             matchScore: responseObj.matchScore || 75,
             missingKeywords: responseObj.missingKeywords || [],
           });
-        } catch (aiErr: any) {
+        } catch (aiErr) {
           console.error("Gemini AI Error:", aiErr);
+          const errorVal = aiErr as Error;
           return NextResponse.json(
-            { error: "Gemini AI evaluation failed: " + aiErr.message },
+            { error: "Gemini AI evaluation failed: " + errorVal.message },
             { status: 500 },
           );
         }
@@ -377,42 +468,59 @@ Do NOT wrap the response in markdown blocks (e.g., \`\`\`json). Just the raw JSO
     if (action === "generate-pdf") {
       if (!tailoredResume || !coverLetterText) {
         return NextResponse.json(
-          { error: "tailoredResume and coverLetterText are required for PDF compilation" },
+          {
+            error:
+              "tailoredResume and coverLetterText are required for PDF compilation",
+          },
           { status: 400 },
         );
       }
 
       // Generate HTML files
       console.log("Generating HTML templates...");
-      const cvHtmlContent = generateHtml(tailoredResume, theme || "classic");
-      const coverLetterHtmlContent = generateCoverLetterHtml(tailoredResume, coverLetterText, theme || "classic");
+      const cvHtmlContent = generateHtml(
+        tailoredResume as TailoredResume,
+        theme || "classic",
+      );
+      const coverLetterHtmlContent = generateCoverLetterHtml(
+        tailoredResume as TailoredResume,
+        coverLetterText,
+        theme || "classic",
+      );
 
       console.log("Launching Puppeteer...");
       let browser;
 
       if (process.env.NODE_ENV === "production" || process.env.VERCEL) {
-        console.log("Loading serverless Puppeteer (puppeteer-core & @sparticuz/chromium)...");
+        console.log(
+          "Loading serverless Puppeteer (puppeteer-core & @sparticuz/chromium)...",
+        );
         const puppeteerCore = await import("puppeteer-core");
-        const sparticuzChromium = (await import("@sparticuz/chromium")).default;
+        const sparticuzChromiumRaw = (await import("@sparticuz/chromium"))
+          .default;
+        const sparticuzChromium =
+          sparticuzChromiumRaw as unknown as ChromiumInterface;
 
         browser = await puppeteerCore.launch({
-          args: (sparticuzChromium as any).args,
-          defaultViewport: (sparticuzChromium as any).defaultViewport,
-          executablePath: await (sparticuzChromium as any).executablePath(),
-          headless: (sparticuzChromium as any).headless as boolean || true,
+          args: sparticuzChromium.args,
+          defaultViewport: sparticuzChromium.defaultViewport as unknown as { width: number; height: number; },
+          executablePath: await sparticuzChromium.executablePath(),
+          headless: (sparticuzChromium.headless as boolean) || true,
         });
       } else {
         console.log("Loading local Puppeteer...");
         const puppeteerLocal = await import("puppeteer");
-        
+
         let executablePath = undefined;
         try {
-          const p1 = "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe";
+          const p1 =
+            "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe";
           await fs.access(p1);
           executablePath = p1;
         } catch {
           try {
-            const p2 = "C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe";
+            const p2 =
+              "C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe";
             await fs.access(p2);
             executablePath = p2;
           } catch {
@@ -422,10 +530,10 @@ Do NOT wrap the response in markdown blocks (e.g., \`\`\`json). Just the raw JSO
         console.log("Using local Chrome path:", executablePath || "default");
         browser = await puppeteerLocal.launch({
           headless: true,
-          executablePath: executablePath
+          executablePath: executablePath,
         });
       }
-      
+
       // Render CV PDF
       console.log("Rendering CV PDF...");
       const cvPage = await browser.newPage();
@@ -464,13 +572,17 @@ Do NOT wrap the response in markdown blocks (e.g., \`\`\`json). Just the raw JSO
     }
 
     return NextResponse.json(
-      { error: "Invalid action. Supported values are: generate-text, generate-pdf" },
+      {
+        error:
+          "Invalid action. Supported values are: generate-text, generate-pdf",
+      },
       { status: 400 },
     );
-  } catch (error: any) {
+  } catch (error) {
     console.error("API Error:", error);
+    const errorVal = error as Error;
     return NextResponse.json(
-      { error: "Internal Server Error: " + error.message },
+      { error: "Internal Server Error: " + errorVal.message },
       { status: 500 },
     );
   }

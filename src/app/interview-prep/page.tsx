@@ -1,5 +1,4 @@
 "use client";
-/* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { useState } from "react";
 import Link from "next/link";
@@ -81,9 +80,10 @@ export default function InterviewPrepPage() {
       setActiveEvaluation(null);
       setUserAnswer("");
       setStep("interview");
-    } catch (err: any) {
+    } catch (err) {
       console.error(err);
-      setError(err.message);
+      const error = err as Error;
+      setError(error.message);
     } finally {
       setLoading(false);
     }
@@ -130,9 +130,10 @@ export default function InterviewPrepPage() {
           evaluation,
         },
       ]);
-    } catch (err: any) {
+    } catch (err) {
       console.error(err);
-      setError(err.message);
+      const error = err as Error;
+      setError(error.message);
     } finally {
       setLoading(false);
     }

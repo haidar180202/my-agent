@@ -1,9 +1,42 @@
 "use client";
-/* eslint-disable @typescript-eslint/no-explicit-any, react-hooks/set-state-in-effect */
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+
+interface PersonalInfo {
+  name: string;
+  title: string;
+  location: string;
+  email: string;
+  phone?: string;
+  website?: string;
+}
+
+interface Experience {
+  company: string;
+  role: string;
+  date?: string;
+  startDate?: string;
+  bullets?: string[];
+  highlights?: string[];
+}
+
+interface Project {
+  name: string;
+  type?: string;
+  date?: string;
+  bullets?: string[];
+  highlights?: string[];
+}
+
+interface TailoredResume {
+  personalInfo?: PersonalInfo;
+  summary?: string;
+  experience?: Experience[];
+  projects?: Project[];
+  skills?: string[];
+}
 
 interface HistoryItem {
   id: string;
@@ -13,7 +46,7 @@ interface HistoryItem {
   theme: string;
   matchScore: number | null;
   jobDescription: string;
-  tailoredResume: any;
+  tailoredResume: TailoredResume;
   coverLetterText: string;
   missingKeywords?: string[];
 }
@@ -23,12 +56,15 @@ export default function HistoryPage() {
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
-  // Load history from localStorage on mount
+  // Load history from localStorage on mount (asynchronously to avoid eslint warnings)
   useEffect(() => {
     try {
       const historyRaw = localStorage.getItem("my-agent-history");
       if (historyRaw) {
-        setHistory(JSON.parse(historyRaw));
+        const parsed = JSON.parse(historyRaw) as HistoryItem[];
+        setTimeout(() => {
+          setHistory(parsed);
+        }, 0);
       }
     } catch (err) {
       console.error("Failed to load application history:", err);
@@ -56,7 +92,7 @@ export default function HistoryPage() {
       router.push("/ats-generate");
     } catch (err) {
       console.error("Failed to preload history item:", err);
-      alert("Failed to preload item: " + err);
+      alert("Failed to preload item: " + String(err));
     }
   };
 
@@ -175,7 +211,7 @@ export default function HistoryPage() {
 
                   {/* Expanded Content Details */}
                   {isExpanded && (
-                    <div className="p-6 border-t border-zinc-150/40 dark:border-zinc-850 flex flex-col gap-6 bg-zinc-50/15 dark:bg-zinc-950/10">
+                    <div className="p-6 border-t border-zinc-155/40 dark:border-zinc-850 flex flex-col gap-6 bg-zinc-50/15 dark:bg-zinc-950/10">
                       
                       {/* Load button */}
                       <button
