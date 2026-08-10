@@ -93,23 +93,26 @@ export default function Home() {
             </div>
           </Link>
 
-          {/* Coming Soon Tool 1 */}
-          <div className="relative flex flex-col justify-between p-8 rounded-3xl bg-zinc-100/50 dark:bg-zinc-900/20 border border-zinc-200/50 dark:border-zinc-800/30 backdrop-blur-sm opacity-70">
-            <div className="absolute top-6 right-6 px-3 py-1 text-xs font-semibold rounded-full bg-zinc-200 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400">
-              Coming Soon
-            </div>
-            <div className="flex flex-col gap-4">
-              <div className="w-14 h-14 flex items-center justify-center rounded-2xl bg-zinc-200 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 mb-4">
+          {/* Active Tool: Video Pipeline */}
+          <Link href="/video-pipeline" className="group relative flex flex-col justify-between p-8 rounded-3xl bg-white/60 dark:bg-zinc-900/40 border border-zinc-200/50 dark:border-zinc-800/50 backdrop-blur-xl shadow-lg hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 overflow-hidden">
+            <div className="absolute inset-0 bg-gradient-to-br from-rose-500/5 to-pink-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+            
+            <div className="relative z-10 flex flex-col gap-4">
+              <div className="w-14 h-14 flex items-center justify-center rounded-2xl bg-rose-100 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400 mb-4 group-hover:scale-110 transition-transform duration-300">
                 <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
                 </svg>
               </div>
-              <h2 className="text-2xl font-bold text-zinc-700 dark:text-zinc-300">Video Pipeline</h2>
-              <p className="text-zinc-500 dark:text-zinc-500 leading-relaxed">
-                Automated video generation pipeline for portfolio showcases and presentations.
+              <h2 className="text-2xl font-bold">Video Pipeline</h2>
+              <p className="text-zinc-600 dark:text-zinc-400 leading-relaxed">
+                Automated video generation scripts and a scrolling teleprompter player for portfolio showcases.
               </p>
             </div>
-          </div>
+
+            <div className="relative z-10 mt-8 flex items-center text-rose-600 dark:text-rose-450 font-semibold group-hover:translate-x-2 transition-transform duration-300">
+              Launch App &rarr;
+            </div>
+          </Link>
 
         </section>
       </main>
