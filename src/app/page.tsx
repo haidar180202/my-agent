@@ -114,6 +114,31 @@ export default function Home() {
             </div>
           </Link>
 
+          {/* Active Tool: AI Live Video Interview */}
+          <Link href="/ai-interview" className="group relative flex flex-col justify-between p-8 rounded-3xl bg-white/60 dark:bg-zinc-900/40 border border-purple-200/60 dark:border-purple-800/50 backdrop-blur-xl shadow-lg hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 overflow-hidden col-span-1 md:col-span-2 lg:col-span-1">
+            <div className="absolute inset-0 bg-gradient-to-br from-purple-500/10 to-indigo-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+            <div className="absolute top-6 right-6 px-3 py-1 text-xs font-bold rounded-full bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300 flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-purple-500 animate-ping" />
+              LIVE ROOM
+            </div>
+            
+            <div className="relative z-10 flex flex-col gap-4">
+              <div className="w-14 h-14 flex items-center justify-center rounded-2xl bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 mb-4 group-hover:scale-110 transition-transform duration-300">
+                <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                </svg>
+              </div>
+              <h2 className="text-2xl font-bold">AI Live Video Call</h2>
+              <p className="text-zinc-600 dark:text-zinc-400 leading-relaxed">
+                Zoom-style mock interview room with an AI Interviewer using real-time speech recognition & voice synthesis.
+              </p>
+            </div>
+
+            <div className="relative z-10 mt-8 flex items-center text-purple-600 dark:text-purple-400 font-semibold group-hover:translate-x-2 transition-transform duration-300">
+              Join Video Meeting &rarr;
+            </div>
+          </Link>
+
         </section>
       </main>
     </div>
