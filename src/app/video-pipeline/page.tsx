@@ -173,7 +173,7 @@ export default function VideoPipelinePage() {
         {step === "setup" && (
           <div className="flex flex-col gap-8">
             <header className="flex flex-col gap-2">
-              <h1 className="text-4xl font-extrabold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-zinc-900 via-zinc-700 to-zinc-900 dark:from-white dark:via-zinc-300 dark:to-white">
+              <h1 className="text-4xl font-extrabold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-zinc-900 via-zinc-700 to-zinc-900 dark:from-white dark:via-zinc-300 dark:to-white pb-1 leading-tight">
                 Video Pipeline Showcase
               </h1>
               <p className="text-zinc-600 dark:text-zinc-400">

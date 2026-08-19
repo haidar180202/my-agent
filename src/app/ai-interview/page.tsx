@@ -378,7 +378,7 @@ export default function AIInterviewPage() {
           )}
 
           <header className="flex flex-col gap-2">
-            <h1 className="text-4xl font-extrabold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-white via-purple-200 to-white">
+            <h1 className="text-4xl font-extrabold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-white via-purple-200 to-white pb-1 leading-tight">
               AI Live Video Call Room
             </h1>
             <p className="text-zinc-400">
