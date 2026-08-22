@@ -138,6 +138,30 @@ export default function Home() {
             </div>
           </Link>
 
+          {/* Active Tool: Outreach Pitch Builder */}
+          <Link href="/pitch-builder" className="group relative flex flex-col justify-between p-8 rounded-3xl bg-white/60 dark:bg-zinc-900/40 border border-pink-200/60 dark:border-pink-800/50 backdrop-blur-xl shadow-lg hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 overflow-hidden col-span-1 md:col-span-2 lg:col-span-1">
+            <div className="absolute inset-0 bg-gradient-to-br from-pink-500/10 to-rose-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+            <div className="absolute top-6 right-6 px-3 py-1 text-xs font-bold rounded-full bg-pink-100 dark:bg-pink-900/50 text-pink-700 dark:text-pink-300 flex items-center gap-1.5">
+              <span>✉️</span> COLD OUTREACH
+            </div>
+            
+            <div className="relative z-10 flex flex-col gap-4">
+              <div className="w-14 h-14 flex items-center justify-center rounded-2xl bg-pink-100 dark:bg-pink-900/30 text-pink-600 dark:text-pink-400 mb-4 group-hover:scale-110 transition-transform duration-300">
+                <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                </svg>
+              </div>
+              <h2 className="text-2xl font-bold">Pitch &amp; Outreach</h2>
+              <p className="text-zinc-600 dark:text-zinc-400 leading-relaxed">
+                Generate high-conversion recruiter emails, punchy LinkedIn connection notes, and viral showcase posts.
+              </p>
+            </div>
+
+            <div className="relative z-10 mt-8 flex items-center text-pink-600 dark:text-pink-400 font-semibold group-hover:translate-x-2 transition-transform duration-300">
+              Build Outreach Pitches &rarr;
+            </div>
+          </Link>
+
         </section>
       </main>
     </div>
