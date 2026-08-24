@@ -1,4 +1,4 @@
-const { app, BrowserWindow, globalShortcut } = require("electron");
+const { app, BrowserWindow, globalShortcut, session, desktopCapturer } = require("electron");
 
 let mainWindow = null;
 
@@ -46,6 +46,18 @@ function createWindow() {
 }
 
 app.whenReady().then(() => {
+  if (session.defaultSession) {
+    session.defaultSession.setDisplayMediaRequestHandler((request, callback) => {
+      desktopCapturer.getSources({ types: ["screen", "window"] }).then((sources) => {
+        if (sources.length > 0) {
+          callback({ video: sources[0] });
+        }
+      }).catch((err) => {
+        console.error("Display media request handler error:", err);
+      });
+    });
+  }
+
   createWindow();
 
   app.on("activate", () => {

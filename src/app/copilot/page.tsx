@@ -183,17 +183,27 @@ export default function CopilotPage() {
 
   const toggleListening = useCallback(() => {
     if (!recognitionRef.current) {
-      alert("Speech Recognition API is not supported in this browser. You can type questions or use Screen Capture.");
+      alert("Speech Recognition API is not supported in this environment. You can type questions or use Screen Capture.");
       return;
     }
 
     if (isListening) {
-      recognitionRef.current.stop();
+      try {
+        recognitionRef.current.stop();
+      } catch {
+        // Ignore stop error
+      }
       setIsListening(false);
     } else {
       setLiveTranscript("");
-      recognitionRef.current.start();
-      setIsListening(true);
+      try {
+        recognitionRef.current.start();
+        setIsListening(true);
+      } catch (err) {
+        console.error("Speech recognition error:", err);
+        setIsListening(false);
+        alert("Speech Recognition (STT) cloud engine is not available in Chromium embedded apps. You can use Screen Capture (Alt+S) or type questions manually.");
+      }
     }
   }, [isListening]);
 
