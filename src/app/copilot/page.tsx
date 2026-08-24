@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
 import Image from "next/image";
 import { CopilotResponse } from "@/app/api/copilot/route";
@@ -48,6 +49,9 @@ declare global {
   interface Window {
     SpeechRecognition?: SpeechRecognitionConstructor;
     webkitSpeechRecognition?: SpeechRecognitionConstructor;
+    documentPictureInPicture?: {
+      requestWindow: (options?: { width?: number; height?: number }) => Promise<Window>;
+    };
   }
 }
 
@@ -68,6 +72,9 @@ export default function CopilotPage() {
   const [copilotMode, setCopilotMode] = useState<CopilotMode>("general");
   const [hudStyle, setHudStyle] = useState<HudStyle>("full");
   const [isWidgetHidden, setIsWidgetHidden] = useState(false);
+
+  // OS Document Picture-in-Picture State
+  const [pipWindow, setPipWindow] = useState<Window | null>(null);
 
   // Meeting Timer Counter State
   const [meetingSeconds, setMeetingSeconds] = useState(0);
@@ -262,6 +269,49 @@ export default function CopilotPage() {
     await handleFetchCopilotAnswer(undefined, screenImageBase64);
   }, [isScreenSharing, handleFetchCopilotAnswer]);
 
+  // Launch OS-Level Always-On-Top Picture-in-Picture Window
+  const handleLaunchOsPipWindow = async () => {
+    if (typeof window === "undefined" || !window.documentPictureInPicture) {
+      alert("Document Picture-in-Picture API is not supported in this browser. Please use Chrome or Edge.");
+      return;
+    }
+
+    try {
+      const pipWin = await window.documentPictureInPicture.requestWindow({
+        width: 780,
+        height: 240,
+      });
+
+      // Copy Document Styles (Tailwind CSS & Next.js Styles) to PiP Window
+      [...document.styleSheets].forEach((styleSheet) => {
+        try {
+          const cssRules = [...styleSheet.cssRules].map((rule) => rule.cssText).join("");
+          const style = document.createElement("style");
+          style.textContent = cssRules;
+          pipWin.document.head.appendChild(style);
+        } catch {
+          if (styleSheet.href) {
+            const link = document.createElement("link");
+            link.rel = "stylesheet";
+            link.href = styleSheet.href;
+            pipWin.document.head.appendChild(link);
+          }
+        }
+      });
+
+      pipWin.document.body.className = "bg-zinc-950 text-zinc-100 p-2 font-sans selection:bg-emerald-500/30";
+
+      pipWin.addEventListener("pagehide", () => {
+        setPipWindow(null);
+      });
+
+      setPipWindow(pipWin);
+      setHudStyle("floating-top-bar");
+    } catch (err) {
+      console.error("Failed to launch OS PiP Window:", err);
+    }
+  };
+
   // Keyboard Hotkeys Event Listener (Alt+S, Alt+L, Alt+H)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -283,16 +333,21 @@ export default function CopilotPage() {
         toggleListening();
       }
 
-      // Alt + H: Toggle Stealth HUD
+      // Alt + H: Toggle Stealth HUD / PiP Window
       if (e.altKey && (e.key === "h" || e.key === "H")) {
         e.preventDefault();
-        setHudStyle((prev) => (prev === "floating-top-bar" ? "full" : "floating-top-bar"));
+        if (!pipWindow) {
+          handleLaunchOsPipWindow();
+        } else {
+          pipWindow.close();
+          setPipWindow(null);
+        }
       }
     };
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [step, isScreenSharing, handleSnapAndSolveScreen, handleStartScreenShare, toggleListening]);
+  }, [step, isScreenSharing, handleSnapAndSolveScreen, handleStartScreenShare, toggleListening, pipWindow]);
 
   const handleLaunchCopilot = (e: React.FormEvent) => {
     e.preventDefault();
@@ -337,6 +392,122 @@ export default function CopilotPage() {
     }
   };
 
+  // Render Teleprompter Widget JSX Helper Component
+  const renderTeleprompterWidget = (isInsidePip = false) => (
+    <div className={`flex flex-col rounded-2xl bg-zinc-900/95 border border-zinc-700/80 shadow-2xl backdrop-blur-2xl text-zinc-100 overflow-hidden ${
+      isInsidePip ? "w-full h-full" : "fixed top-3 left-1/2 -translate-x-1/2 z-50 w-[95%] max-w-4xl animate-fade-in"
+    }`}>
+      
+      {/* Top Bar Header Row */}
+      <div className="flex items-center justify-between gap-3 px-4 py-2 bg-zinc-950/80 border-b border-zinc-800/80 text-xs">
+        
+        {/* Left Brand Badge & Hide Toggle */}
+        <div className="flex items-center gap-2">
+          <span className="flex items-center gap-1.5 font-extrabold text-white bg-emerald-950/80 border border-emerald-700/80 px-2.5 py-1 rounded-xl">
+            <span>🦜</span>
+            <span className="tracking-tight">ParakeetAI Copilot</span>
+          </span>
+
+          <button
+            type="button"
+            onClick={() => setIsWidgetHidden(!isWidgetHidden)}
+            className="px-2.5 py-1 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-bold cursor-pointer transition-colors"
+          >
+            {isWidgetHidden ? "Show" : "Hide"}
+          </button>
+        </div>
+
+        {/* Middle Domain & Live Meeting Timer */}
+        <div className="flex items-center gap-3 text-zinc-400 font-mono text-[11px]">
+          <span className="hidden sm:inline-block font-semibold text-zinc-300">meet.google.com / Zoom</span>
+          <span className="flex items-center gap-1 font-bold text-amber-400 bg-amber-950/50 px-2 py-0.5 rounded-lg border border-amber-800/40">
+            ⏰ {formatTimer(meetingSeconds)}
+          </span>
+        </div>
+
+        {/* Right Control Action Buttons */}
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={toggleListening}
+            className={`px-3 py-1 rounded-xl font-bold text-xs cursor-pointer flex items-center gap-1.5 transition-all ${
+              isListening
+                ? "bg-red-600 hover:bg-red-700 text-white animate-pulse shadow-md"
+                : "bg-emerald-600 hover:bg-emerald-700 text-white shadow-md"
+            }`}
+          >
+            {isListening ? "Stop Listening 🔴" : "Listen 🎙️"}
+          </button>
+
+          <button
+            type="button"
+            onClick={handleClearAll}
+            className="px-2.5 py-1 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-bold cursor-pointer text-[11px]"
+          >
+            Clear
+          </button>
+
+          {!isInsidePip && (
+            <button
+              type="button"
+              onClick={() => setHudStyle("full")}
+              className="px-2.5 py-1 rounded-xl bg-red-600/80 hover:bg-red-600 text-white font-bold cursor-pointer text-[11px]"
+            >
+              Exit
+            </button>
+          )}
+        </div>
+
+      </div>
+
+      {/* Middle Teleprompter Text Row (Collapsed when Hidden) */}
+      {!isWidgetHidden && (
+        <div className="flex flex-col gap-2 p-3 bg-zinc-900/90 text-sm">
+          
+          {/* Spoken Question or Live Transcript Teleprompter */}
+          <div className="text-xs font-semibold text-zinc-300 leading-relaxed italic border-l-2 border-emerald-500 pl-3">
+            {liveTranscript || copilotData?.modelAnswer || "Listening for interviewer questions or click 'Analyse Screen'..."}
+          </div>
+
+          {/* Bullets Talking Points inside Teleprompter */}
+          {copilotData && copilotData.talkingPoints && (
+            <div className="flex flex-col gap-1 pt-1.5 border-t border-zinc-800/80 text-xs">
+              <span className="text-[10px] font-black uppercase text-emerald-400">⚡ Gold Talking Points:</span>
+              <ul className="list-disc list-inside flex flex-col gap-1 font-semibold text-emerald-200">
+                {copilotData.talkingPoints.map((tp, idx) => (
+                  <li key={idx}>{tp}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {/* Sub-Bar Action Buttons Row */}
+          <div className="flex items-center justify-center gap-3 pt-1.5">
+            <button
+              type="button"
+              onClick={() => handleFetchCopilotAnswer()}
+              disabled={loading}
+              className="px-3.5 py-1 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-white font-extrabold text-xs cursor-pointer border border-zinc-700 shadow-md disabled:opacity-50"
+            >
+              ⚡ Answer Question
+            </button>
+
+            <button
+              type="button"
+              onClick={isScreenSharing ? handleSnapAndSolveScreen : handleStartScreenShare}
+              disabled={loading}
+              className="px-3.5 py-1 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-extrabold text-xs cursor-pointer shadow-md disabled:opacity-50"
+            >
+              📸 Analyse Screen
+            </button>
+          </div>
+
+        </div>
+      )}
+
+    </div>
+  );
+
   return (
     <div className={`min-h-screen font-sans selection:bg-emerald-500/30 transition-colors ${
       hudStyle === "stealth-card" || hudStyle === "floating-top-bar"
@@ -355,123 +526,11 @@ export default function CopilotPage() {
         </div>
       )}
 
-      {/* ========================================================================= */}
-      {/* PARAKEET AI TOP FLOATING TELEPROMPTER BAR WIDGET (USER SCREENSHOT PARITY) */}
-      {/* ========================================================================= */}
-      {step === "copilot" && hudStyle === "floating-top-bar" && (
-        <div className="fixed top-3 left-1/2 -translate-x-1/2 z-50 w-[95%] max-w-4xl animate-fade-in">
-          
-          <div className="flex flex-col rounded-2xl bg-zinc-900/95 border border-zinc-700/80 shadow-2xl backdrop-blur-2xl text-zinc-100 overflow-hidden">
-            
-            {/* Top Bar Header Row */}
-            <div className="flex items-center justify-between gap-3 px-4 py-2.5 bg-zinc-950/80 border-b border-zinc-800/80 text-xs">
-              
-              {/* Left Brand Badge & Hide Toggle */}
-              <div className="flex items-center gap-2">
-                <span className="flex items-center gap-1.5 font-extrabold text-white bg-emerald-950/80 border border-emerald-700/80 px-2.5 py-1 rounded-xl">
-                  <span>🦜</span>
-                  <span className="tracking-tight">ParakeetAI Copilot</span>
-                </span>
+      {/* RENDER PARAKEET TELEPROMPTER WIDGET INSIDE NATIVE WINDOWS OS PiP WINDOW */}
+      {pipWindow && createPortal(renderTeleprompterWidget(true), pipWindow.document.body)}
 
-                <button
-                  type="button"
-                  onClick={() => setIsWidgetHidden(!isWidgetHidden)}
-                  className="px-2.5 py-1 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-bold cursor-pointer transition-colors"
-                >
-                  {isWidgetHidden ? "Show" : "Hide"}
-                </button>
-              </div>
-
-              {/* Middle Domain & Live Meeting Timer */}
-              <div className="flex items-center gap-3 text-zinc-400 font-mono text-[11px]">
-                <span className="hidden sm:inline-block font-semibold text-zinc-300">meet.google.com / Zoom</span>
-                <span className="flex items-center gap-1 font-bold text-amber-400 bg-amber-950/50 px-2 py-0.5 rounded-lg border border-amber-800/40">
-                  ⏰ {formatTimer(meetingSeconds)}
-                </span>
-              </div>
-
-              {/* Right Control Action Buttons */}
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={toggleListening}
-                  className={`px-3 py-1 rounded-xl font-bold text-xs cursor-pointer flex items-center gap-1.5 transition-all ${
-                    isListening
-                      ? "bg-red-600 hover:bg-red-700 text-white animate-pulse shadow-md"
-                      : "bg-emerald-600 hover:bg-emerald-700 text-white shadow-md"
-                  }`}
-                >
-                  {isListening ? "Stop Listening 🔴" : "Listen 🎙️"}
-                </button>
-
-                <button
-                  type="button"
-                  onClick={handleClearAll}
-                  className="px-2.5 py-1 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-bold cursor-pointer text-[11px]"
-                >
-                  Clear
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setHudStyle("full")}
-                  className="px-2.5 py-1 rounded-xl bg-red-600/80 hover:bg-red-600 text-white font-bold cursor-pointer text-[11px]"
-                >
-                  Exit
-                </button>
-              </div>
-
-            </div>
-
-            {/* Middle Teleprompter Text Row (Collapsed when Hidden) */}
-            {!isWidgetHidden && (
-              <div className="flex flex-col gap-2 p-3.5 bg-zinc-900/90 text-sm">
-                
-                {/* Spoken Question or Live Transcript Teleprompter */}
-                <div className="text-xs font-semibold text-zinc-300 leading-relaxed italic border-l-2 border-emerald-500 pl-3">
-                  {liveTranscript || copilotData?.modelAnswer || "Listening for interviewer questions or click 'Analyse Screen'..."}
-                </div>
-
-                {/* Bullets Talking Points inside Teleprompter */}
-                {copilotData && copilotData.talkingPoints && (
-                  <div className="flex flex-col gap-1.5 pt-2 border-t border-zinc-800/80 text-xs">
-                    <span className="text-[10px] font-black uppercase text-emerald-400">⚡ Gold Talking Points:</span>
-                    <ul className="list-disc list-inside flex flex-col gap-1 font-semibold text-emerald-200">
-                      {copilotData.talkingPoints.map((tp, idx) => (
-                        <li key={idx}>{tp}</li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-
-                {/* Sub-Bar Action Buttons Row */}
-                <div className="flex items-center justify-center gap-3 pt-2">
-                  <button
-                    type="button"
-                    onClick={() => handleFetchCopilotAnswer()}
-                    disabled={loading}
-                    className="px-4 py-1.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-white font-extrabold text-xs cursor-pointer border border-zinc-700 shadow-md disabled:opacity-50"
-                  >
-                    ⚡ Answer Question
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={isScreenSharing ? handleSnapAndSolveScreen : handleStartScreenShare}
-                    disabled={loading}
-                    className="px-4 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-extrabold text-xs cursor-pointer shadow-md disabled:opacity-50"
-                  >
-                    📸 Analyse Screen
-                  </button>
-                </div>
-
-              </div>
-            )}
-
-          </div>
-
-        </div>
-      )}
+      {/* RENDER IN-PAGE FLOATING BAR IF PIP WINDOW IS NOT ACTIVE */}
+      {step === "copilot" && hudStyle === "floating-top-bar" && !pipWindow && renderTeleprompterWidget(false)}
 
       <main className={`relative z-10 mx-auto flex flex-col gap-6 ${
         hudStyle === "stealth-card" || hudStyle === "floating-top-bar" ? "max-w-2xl pt-24" : "max-w-5xl px-4 sm:px-6 py-12"
@@ -573,7 +632,7 @@ export default function CopilotPage() {
         {step === "copilot" && (
           <div className="flex flex-col gap-6">
             
-            {/* RESPONSE MODE SELECTOR & WIDGET STYLE TOGGLES */}
+            {/* RESPONSE MODE SELECTOR & OS WINDOW LAUNCHER */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white/60 dark:bg-zinc-900/60 p-4 rounded-2xl border border-zinc-200/60 dark:border-zinc-800/60 backdrop-blur-md">
               
               {/* Response Mode Selector */}
@@ -600,28 +659,17 @@ export default function CopilotPage() {
                 ))}
               </div>
 
-              {/* HUD Widget Style Switcher */}
-              <div className="flex items-center gap-1 bg-zinc-100 dark:bg-zinc-800 p-1 rounded-xl shrink-0">
-                <span className="text-[10px] font-bold text-zinc-400 px-1">Widget View:</span>
+              {/* OS FLOATING WINDOW LAUNCHER BUTTON */}
+              <div className="flex items-center gap-2">
                 <button
                   type="button"
-                  onClick={() => setHudStyle("full")}
-                  className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                    hudStyle === "full" ? "bg-emerald-600 text-white shadow-sm" : "text-zinc-400 hover:text-white"
-                  }`}
+                  onClick={handleLaunchOsPipWindow}
+                  className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-extrabold text-xs cursor-pointer shadow-md transition-all flex items-center gap-1.5"
                 >
-                  🔲 Full
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setHudStyle("floating-top-bar")}
-                  className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                    hudStyle === "floating-top-bar" ? "bg-emerald-600 text-white shadow-sm" : "text-zinc-400 hover:text-white"
-                  }`}
-                >
-                  🦜 Parakeet Floating Bar
+                  🪟 Launch OS Floating Window (Always-on-Top)
                 </button>
               </div>
+
             </div>
 
             {/* Header Controls Bar */}
