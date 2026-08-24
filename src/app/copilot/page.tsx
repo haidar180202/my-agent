@@ -57,6 +57,7 @@ declare global {
 
 type CopilotMode = "general" | "coding" | "behavioral-star" | "system-design";
 type HudStyle = "full" | "stealth-card" | "floating-top-bar";
+type WidgetOpacity = "100" | "70" | "40" | "20";
 
 export default function CopilotPage() {
   const [password, setPassword] = useState("");
@@ -72,6 +73,9 @@ export default function CopilotPage() {
   const [copilotMode, setCopilotMode] = useState<CopilotMode>("general");
   const [hudStyle, setHudStyle] = useState<HudStyle>("full");
   const [isWidgetHidden, setIsWidgetHidden] = useState(false);
+
+  // Glass Stealth Opacity State
+  const [widgetOpacity, setWidgetOpacity] = useState<WidgetOpacity>("70");
 
   // OS Document Picture-in-Picture State
   const [pipWindow, setPipWindow] = useState<Window | null>(null);
@@ -377,6 +381,21 @@ export default function CopilotPage() {
     return `${mins} mins`;
   };
 
+  const getOpacityClass = () => {
+    switch (widgetOpacity) {
+      case "100":
+        return "opacity-100";
+      case "70":
+        return "opacity-70 hover:opacity-100";
+      case "40":
+        return "opacity-40 hover:opacity-100";
+      case "20":
+        return "opacity-20 hover:opacity-100";
+      default:
+        return "opacity-70 hover:opacity-100";
+    }
+  };
+
   const getFontSizeClass = () => {
     switch (fontSize) {
       case "sm":
@@ -394,12 +413,12 @@ export default function CopilotPage() {
 
   // Render Teleprompter Widget JSX Helper Component
   const renderTeleprompterWidget = (isInsidePip = false) => (
-    <div className={`flex flex-col rounded-2xl bg-zinc-900/95 border border-zinc-700/80 shadow-2xl backdrop-blur-2xl text-zinc-100 overflow-hidden ${
+    <div className={`flex flex-col rounded-2xl bg-zinc-900/90 border border-zinc-700/80 shadow-2xl backdrop-blur-2xl text-zinc-100 overflow-hidden transition-all duration-300 ${getOpacityClass()} ${
       isInsidePip ? "w-full h-full" : "fixed top-3 left-1/2 -translate-x-1/2 z-50 w-[95%] max-w-4xl animate-fade-in"
     }`}>
       
       {/* Top Bar Header Row */}
-      <div className="flex items-center justify-between gap-3 px-4 py-2 bg-zinc-950/80 border-b border-zinc-800/80 text-xs">
+      <div className="flex items-center justify-between gap-3 px-4 py-2 bg-zinc-950/90 border-b border-zinc-800/80 text-xs">
         
         {/* Left Brand Badge & Hide Toggle */}
         <div className="flex items-center gap-2">
@@ -425,8 +444,25 @@ export default function CopilotPage() {
           </span>
         </div>
 
-        {/* Right Control Action Buttons */}
+        {/* Right Glass Opacity Switcher & Control Buttons */}
         <div className="flex items-center gap-2">
+          {/* Glass Opacity Switcher */}
+          <div className="flex items-center gap-1 bg-zinc-800/80 p-0.5 rounded-xl border border-zinc-700/60">
+            <span className="text-[9px] font-bold text-zinc-400 px-1">Glass:</span>
+            {(["100", "70", "40", "20"] as const).map((op) => (
+              <button
+                key={op}
+                type="button"
+                onClick={() => setWidgetOpacity(op)}
+                className={`px-1.5 py-0.5 rounded-md text-[9px] font-bold transition-all cursor-pointer ${
+                  widgetOpacity === op ? "bg-emerald-600 text-white shadow-sm" : "text-zinc-400 hover:text-white"
+                }`}
+              >
+                {op}%
+              </button>
+            ))}
+          </div>
+
           <button
             type="button"
             onClick={toggleListening}
@@ -462,10 +498,10 @@ export default function CopilotPage() {
 
       {/* Middle Teleprompter Text Row (Collapsed when Hidden) */}
       {!isWidgetHidden && (
-        <div className="flex flex-col gap-2 p-3 bg-zinc-900/90 text-sm">
+        <div className="flex flex-col gap-2 p-3 bg-zinc-900/80 text-sm">
           
           {/* Spoken Question or Live Transcript Teleprompter */}
-          <div className="text-xs font-semibold text-zinc-300 leading-relaxed italic border-l-2 border-emerald-500 pl-3">
+          <div className="text-xs font-semibold text-zinc-200 leading-relaxed italic border-l-2 border-emerald-500 pl-3">
             {liveTranscript || copilotData?.modelAnswer || "Listening for interviewer questions or click 'Analyse Screen'..."}
           </div>
 
@@ -487,7 +523,7 @@ export default function CopilotPage() {
               type="button"
               onClick={() => handleFetchCopilotAnswer()}
               disabled={loading}
-              className="px-3.5 py-1 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-white font-extrabold text-xs cursor-pointer border border-zinc-700 shadow-md disabled:opacity-50"
+              className="px-3.5 py-1 rounded-xl bg-zinc-800/90 hover:bg-zinc-700 text-white font-extrabold text-xs cursor-pointer border border-zinc-700 shadow-md disabled:opacity-50"
             >
               ⚡ Answer Question
             </button>
