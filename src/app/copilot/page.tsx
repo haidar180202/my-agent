@@ -95,8 +95,8 @@ export default function CopilotPage() {
   });
   const [isWidgetHidden, setIsWidgetHidden] = useState(false);
 
-  // Glass Stealth Opacity State
-  const [widgetOpacity, setWidgetOpacity] = useState<WidgetOpacity>("70");
+  // Glass Stealth Opacity State (Default to 40% Glass Mode)
+  const [widgetOpacity, setWidgetOpacity] = useState<WidgetOpacity>("40");
 
   // OS Document Picture-in-Picture State
   const [pipWindow, setPipWindow] = useState<Window | null>(null);
@@ -124,8 +124,6 @@ export default function CopilotPage() {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
-
-
 
   // Initialize Speech Recognition
   useEffect(() => {
@@ -404,18 +402,19 @@ export default function CopilotPage() {
     return `${mins} mins`;
   };
 
-  const getOpacityClass = () => {
+  // Glass Stealth Style Resolver
+  const getGlassStyles = () => {
     switch (widgetOpacity) {
       case "100":
-        return "opacity-100";
+        return "bg-zinc-950/95 border-zinc-700/80 backdrop-blur-2xl opacity-100 shadow-2xl";
       case "70":
-        return "opacity-70 hover:opacity-100";
+        return "bg-zinc-950/50 border-zinc-700/50 backdrop-blur-xl opacity-85 hover:opacity-100 shadow-xl";
       case "40":
-        return "opacity-40 hover:opacity-100";
+        return "bg-zinc-950/25 border-zinc-700/30 backdrop-blur-md opacity-60 hover:opacity-100 shadow-lg";
       case "20":
-        return "opacity-20 hover:opacity-100";
+        return "bg-zinc-950/10 border-zinc-800/20 backdrop-blur-sm opacity-35 hover:opacity-100 shadow-sm";
       default:
-        return "opacity-70 hover:opacity-100";
+        return "bg-zinc-950/30 border-zinc-700/40 backdrop-blur-md opacity-70 hover:opacity-100 shadow-xl";
     }
   };
 
@@ -436,19 +435,19 @@ export default function CopilotPage() {
 
   // Render Teleprompter Widget JSX Helper Component
   const renderTeleprompterWidget = (isInsidePip = false) => (
-    <div className={`flex flex-col rounded-2xl bg-zinc-900/90 border border-zinc-700/80 shadow-2xl backdrop-blur-2xl text-zinc-100 overflow-hidden transition-all duration-300 ${getOpacityClass()} ${
-      isInsidePip || isDesktopMode ? "w-full h-full" : "fixed top-3 left-1/2 -translate-x-1/2 z-50 w-[95%] max-w-4xl animate-fade-in"
+    <div className={`flex flex-col rounded-2xl border text-zinc-100 overflow-hidden transition-all duration-300 ${getGlassStyles()} ${
+      isInsidePip || isDesktopMode ? "w-full" : "fixed top-3 left-1/2 -translate-x-1/2 z-50 w-[95%] max-w-4xl animate-fade-in"
     }`}>
       
       {/* Top Bar Header Row (Draggable in Electron Desktop Mode) */}
       <div
-        className="flex items-center justify-between gap-3 px-4 py-2 bg-zinc-950/90 border-b border-zinc-800/80 text-xs select-none"
+        className="flex items-center justify-between gap-3 px-4 py-2 bg-black/40 border-b border-zinc-800/40 text-xs select-none backdrop-blur-md"
         style={isDesktopMode ? ({ WebkitAppRegion: "drag" } as React.CSSProperties) : undefined}
       >
         
         {/* Left Brand Badge & Hide Toggle */}
         <div className="flex items-center gap-2" style={{ WebkitAppRegion: "no-drag" } as React.CSSProperties}>
-          <span className="flex items-center gap-1.5 font-extrabold text-white bg-emerald-950/80 border border-emerald-700/80 px-2.5 py-1 rounded-xl">
+          <span className="flex items-center gap-1.5 font-extrabold text-white bg-emerald-950/60 border border-emerald-700/60 px-2.5 py-1 rounded-xl">
             <span>🦜</span>
             <span className="tracking-tight">ParakeetAI Copilot</span>
           </span>
@@ -456,7 +455,7 @@ export default function CopilotPage() {
           <button
             type="button"
             onClick={() => setIsWidgetHidden(!isWidgetHidden)}
-            className="px-2.5 py-1 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-bold cursor-pointer transition-colors"
+            className="px-2.5 py-1 rounded-xl bg-zinc-800/80 hover:bg-zinc-700 text-zinc-300 font-bold cursor-pointer transition-colors"
           >
             {isWidgetHidden ? "Show" : "Hide"}
           </button>
@@ -465,7 +464,7 @@ export default function CopilotPage() {
         {/* Middle Domain & Live Meeting Timer */}
         <div className="flex items-center gap-3 text-zinc-400 font-mono text-[11px]">
           <span className="hidden sm:inline-block font-semibold text-zinc-300">meet.google.com / Zoom</span>
-          <span className="flex items-center gap-1 font-bold text-amber-400 bg-amber-950/50 px-2 py-0.5 rounded-lg border border-amber-800/40">
+          <span className="flex items-center gap-1 font-bold text-amber-400 bg-amber-950/40 px-2 py-0.5 rounded-lg border border-amber-800/30">
             ⏰ {formatTimer(meetingSeconds)}
           </span>
         </div>
@@ -473,7 +472,7 @@ export default function CopilotPage() {
         {/* Right Glass Opacity Switcher & Control Buttons */}
         <div className="flex items-center gap-2" style={{ WebkitAppRegion: "no-drag" } as React.CSSProperties}>
           {/* Glass Opacity Switcher */}
-          <div className="flex items-center gap-1 bg-zinc-800/80 p-0.5 rounded-xl border border-zinc-700/60">
+          <div className="flex items-center gap-1 bg-zinc-800/60 p-0.5 rounded-xl border border-zinc-700/50">
             <span className="text-[9px] font-bold text-zinc-400 px-1">Glass:</span>
             {(["100", "70", "40", "20"] as const).map((op) => (
               <button
@@ -504,7 +503,7 @@ export default function CopilotPage() {
           <button
             type="button"
             onClick={handleClearAll}
-            className="px-2.5 py-1 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-bold cursor-pointer text-[11px]"
+            className="px-2.5 py-1 rounded-xl bg-zinc-800/80 hover:bg-zinc-700 text-zinc-300 font-bold cursor-pointer text-[11px]"
           >
             Clear
           </button>
@@ -524,7 +523,7 @@ export default function CopilotPage() {
 
       {/* Middle Teleprompter Text Row (Collapsed when Hidden) */}
       {!isWidgetHidden && (
-        <div className="flex flex-col gap-2 p-3 bg-zinc-900/80 text-sm">
+        <div className="flex flex-col gap-2 p-3 bg-black/20 text-sm backdrop-blur-sm">
           
           {/* Spoken Question or Live Transcript Teleprompter */}
           <div className="text-xs font-semibold text-zinc-200 leading-relaxed italic border-l-2 border-emerald-500 pl-3">
@@ -533,7 +532,7 @@ export default function CopilotPage() {
 
           {/* Bullets Talking Points inside Teleprompter */}
           {copilotData && copilotData.talkingPoints && (
-            <div className="flex flex-col gap-1 pt-1.5 border-t border-zinc-800/80 text-xs">
+            <div className="flex flex-col gap-1 pt-1.5 border-t border-zinc-800/50 text-xs">
               <span className="text-[10px] font-black uppercase text-emerald-400">⚡ Gold Talking Points:</span>
               <ul className="list-disc list-inside flex flex-col gap-1 font-semibold text-emerald-200">
                 {copilotData.talkingPoints.map((tp, idx) => (
@@ -549,7 +548,7 @@ export default function CopilotPage() {
               type="button"
               onClick={() => handleFetchCopilotAnswer()}
               disabled={loading}
-              className="px-3.5 py-1 rounded-xl bg-zinc-800/90 hover:bg-zinc-700 text-white font-extrabold text-xs cursor-pointer border border-zinc-700 shadow-md disabled:opacity-50"
+              className="px-3.5 py-1 rounded-xl bg-zinc-800/80 hover:bg-zinc-700 text-white font-extrabold text-xs cursor-pointer border border-zinc-700/60 shadow-md disabled:opacity-50"
             >
               ⚡ Answer Question
             </button>
