@@ -162,6 +162,30 @@ export default function Home() {
             </div>
           </Link>
 
+          {/* Active Tool: Real-Time AI Copilot */}
+          <Link href="/copilot" className="group relative flex flex-col justify-between p-8 rounded-3xl bg-white/60 dark:bg-zinc-900/40 border border-emerald-200/60 dark:border-emerald-800/50 backdrop-blur-xl shadow-lg hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 overflow-hidden col-span-1 md:col-span-2 lg:col-span-1">
+            <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/10 to-teal-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+            <div className="absolute top-6 right-6 px-3 py-1 text-xs font-bold rounded-full bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300 flex items-center gap-1.5">
+              <span>⚡</span> REAL-TIME HUD
+            </div>
+            
+            <div className="relative z-10 flex flex-col gap-4">
+              <div className="w-14 h-14 flex items-center justify-center rounded-2xl bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 mb-4 group-hover:scale-110 transition-transform duration-300">
+                <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
+              </div>
+              <h2 className="text-2xl font-bold">Live AI Copilot</h2>
+              <p className="text-zinc-600 dark:text-zinc-400 leading-relaxed">
+                Stealth AI sidecar assistant for Zoom/Meet. Listens to interviewer questions &amp; streams instant gold talking points.
+              </p>
+            </div>
+
+            <div className="relative z-10 mt-8 flex items-center text-emerald-600 dark:text-emerald-400 font-semibold group-hover:translate-x-2 transition-transform duration-300">
+              Launch Live Copilot &rarr;
+            </div>
+          </Link>
+
         </section>
       </main>
     </div>
