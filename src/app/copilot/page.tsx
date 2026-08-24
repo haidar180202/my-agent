@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { CopilotResponse } from "@/app/api/copilot/route";
 
 // Web Speech API Native Interfaces (Strict Typing)
@@ -60,20 +61,27 @@ export default function CopilotPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  // Live Listening & Transcribing State
+  // Live STT Speech Recognition State
   const [isListening, setIsListening] = useState(false);
   const [liveTranscript, setLiveTranscript] = useState("");
   const [manualQuestionInput, setManualQuestionInput] = useState("");
 
+  // Screen Share & Vision OCR State
+  const [isScreenSharing, setIsScreenSharing] = useState(false);
+  const [capturedImagePreview, setCapturedImagePreview] = useState<string | null>(null);
+
   // Stealth HUD Customization State
   const [isStealthHud, setIsStealthHud] = useState(false);
   const [fontSize, setFontSize] = useState<"sm" | "base" | "lg" | "xl">("base");
-  const [copied, setCopied] = useState(false);
+  const [copiedKey, setCopiedKey] = useState<string | null>(null);
 
   // Copilot Response State
   const [copilotData, setCopilotData] = useState<CopilotResponse | null>(null);
 
   const recognitionRef = useRef<SpeechRecognitionInstance | null>(null);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
 
   // Initialize Speech Recognition
   useEffect(() => {
@@ -106,9 +114,18 @@ export default function CopilotPage() {
     }
   }, []);
 
+  // Cleanup screen share stream on unmount
+  useEffect(() => {
+    return () => {
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach((track) => track.stop());
+      }
+    };
+  }, []);
+
   const toggleListening = () => {
     if (!recognitionRef.current) {
-      alert("Speech Recognition API is not supported in this browser. You can type questions manually.");
+      alert("Speech Recognition API is not supported in this browser. You can type questions or use Screen Capture.");
       return;
     }
 
@@ -122,6 +139,75 @@ export default function CopilotPage() {
     }
   };
 
+  // Start HTML5 Screen Share Stream
+  const handleStartScreenShare = async () => {
+    try {
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia) {
+        alert("Screen Capture is not supported in this browser environment.");
+        return;
+      }
+
+      const mediaStream = await navigator.mediaDevices.getDisplayMedia({
+        video: { cursor: "always" } as MediaTrackConstraints,
+        audio: false,
+      });
+
+      streamRef.current = mediaStream;
+
+      if (videoRef.current) {
+        videoRef.current.srcObject = mediaStream;
+        videoRef.current.play();
+      }
+
+      setIsScreenSharing(true);
+
+      // Listen for stream stop (user clicks stop sharing in browser bar)
+      mediaStream.getVideoTracks()[0].onended = () => {
+        setIsScreenSharing(false);
+        streamRef.current = null;
+      };
+    } catch (err) {
+      console.error("Failed to start screen share:", err);
+    }
+  };
+
+  // Stop Screen Share Stream
+  const handleStopScreenShare = () => {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach((track) => track.stop());
+      streamRef.current = null;
+    }
+    setIsScreenSharing(false);
+  };
+
+  // Take Snapshot from Video Stream & Send to Gemini Vision
+  const handleSnapAndSolveScreen = async () => {
+    if (!videoRef.current || !isScreenSharing) {
+      alert("Please click 'Start Screen Share' first before snapping screen.");
+      return;
+    }
+
+    const video = videoRef.current;
+    if (video.videoWidth === 0 || video.videoHeight === 0) {
+      alert("Screen video stream is not ready yet. Please wait a moment.");
+      return;
+    }
+
+    // Draw video frame onto hidden canvas
+    const canvas = canvasRef.current || document.createElement("canvas");
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    const screenImageBase64 = canvas.toDataURL("image/png");
+    setCapturedImagePreview(screenImageBase64);
+
+    // Call Copilot Vision API with screen image
+    await handleFetchCopilotAnswer(undefined, screenImageBase64);
+  };
+
   const handleLaunchCopilot = (e: React.FormEvent) => {
     e.preventDefault();
     if (!password) {
@@ -133,10 +219,10 @@ export default function CopilotPage() {
   };
 
   // Trigger Gemini Copilot Answer Fetch
-  const handleFetchCopilotAnswer = async (queryText?: string) => {
+  const handleFetchCopilotAnswer = async (queryText?: string, screenImageBase64?: string) => {
     const questionToAsk = queryText || liveTranscript || manualQuestionInput;
-    if (!questionToAsk.trim()) {
-      setError("Please speak or type a question to get AI copilot answer");
+    if (!questionToAsk.trim() && !screenImageBase64) {
+      setError("Please speak, type a question, or capture a screen image to get AI copilot answer");
       return;
     }
 
@@ -153,6 +239,7 @@ export default function CopilotPage() {
           targetRole,
           jobDescription,
           liveQuestionText: questionToAsk.trim(),
+          screenImageBase64: screenImageBase64 || null,
         }),
       });
 
@@ -172,12 +259,10 @@ export default function CopilotPage() {
     }
   };
 
-  const handleCopyAnswer = () => {
-    if (!copilotData) return;
-    const fullText = `Talking Points:\n${copilotData.talkingPoints.map((tp) => `- ${tp}`).join("\n")}\n\nModel Answer:\n${copilotData.modelAnswer}`;
-    navigator.clipboard.writeText(fullText);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 3000);
+  const handleCopyText = (text: string, key: string) => {
+    navigator.clipboard.writeText(text);
+    setCopiedKey(key);
+    setTimeout(() => setCopiedKey(null), 3000);
   };
 
   const getFontSizeClass = () => {
@@ -198,10 +283,14 @@ export default function CopilotPage() {
   return (
     <div className={`min-h-screen font-sans selection:bg-emerald-500/30 transition-colors ${
       isStealthHud
-        ? "bg-zinc-950/90 text-zinc-100 p-4"
+        ? "bg-zinc-950/95 text-zinc-100 p-4"
         : "bg-zinc-50 dark:bg-[#0a0a0a] text-zinc-900 dark:text-zinc-50"
     }`}>
       
+      {/* Hidden Video and Canvas Elements for HTML5 Screen Capture */}
+      <video ref={videoRef} className="hidden" playsInline muted />
+      <canvas ref={canvasRef} className="hidden" />
+
       {!isStealthHud && (
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
           <div className="absolute -top-[25%] -left-[10%] w-[50%] h-[50%] rounded-full bg-emerald-600/10 dark:bg-emerald-600/20 blur-[120px]" />
@@ -218,7 +307,7 @@ export default function CopilotPage() {
             </Link>
             <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-100 dark:bg-emerald-950/60 border border-emerald-300 dark:border-emerald-800">
               <span className="flex h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-              <span className="text-xs font-bold text-emerald-700 dark:text-emerald-300">⚡ Real-Time AI Copilot</span>
+              <span className="text-xs font-bold text-emerald-700 dark:text-emerald-300">⚡ Real-Time AI Copilot &amp; Vision OCR</span>
             </div>
           </div>
         )}
@@ -234,10 +323,10 @@ export default function CopilotPage() {
           <div className="flex flex-col gap-8">
             <header className="flex flex-col gap-2">
               <h1 className="text-4xl font-extrabold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-zinc-900 via-zinc-700 to-zinc-900 dark:from-white dark:via-zinc-300 dark:to-white pb-1 leading-tight">
-                Live AI Interview Copilot
+                Live AI Interview Copilot &amp; Vision OCR
               </h1>
               <p className="text-sm text-zinc-600 dark:text-zinc-400">
-                Stealth sidecar assistant for Zoom/Meet. Listens to interviewer questions and generates instant talking points (under 2 seconds).
+                Stealth sidecar assistant for Zoom/Meet. Listens to interviewer questions &amp; captures LeetCode/HackerRank screen problems with instant Gemini Vision solutions.
               </p>
             </header>
 
@@ -309,18 +398,48 @@ export default function CopilotPage() {
             
             {/* Header Controls Bar */}
             <div className="flex flex-wrap items-center justify-between gap-3 bg-white/60 dark:bg-zinc-900/60 p-4 rounded-2xl border border-zinc-200/60 dark:border-zinc-800/60 backdrop-blur-md">
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
+                {/* Audio Listening Button */}
                 <button
                   type="button"
                   onClick={toggleListening}
-                  className={`px-4 py-2 rounded-xl font-bold text-xs transition-all cursor-pointer flex items-center gap-2 ${
+                  className={`px-3.5 py-2 rounded-xl font-bold text-xs transition-all cursor-pointer flex items-center gap-2 ${
                     isListening
                       ? "bg-red-600 text-white animate-pulse shadow-md"
                       : "bg-emerald-600 hover:bg-emerald-700 text-white shadow-md"
                   }`}
                 >
-                  {isListening ? "⏹️ Stop Listening" : "🎙️ Start Live Listening"}
+                  {isListening ? "⏹️ Stop Listening" : "🎙️ Listen Audio"}
                 </button>
+
+                {/* Screen Share / Vision OCR Buttons */}
+                {!isScreenSharing ? (
+                  <button
+                    type="button"
+                    onClick={handleStartScreenShare}
+                    className="px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs transition-all cursor-pointer shadow-md flex items-center gap-1.5"
+                  >
+                    🖥️ Start Screen Share
+                  </button>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={handleSnapAndSolveScreen}
+                      disabled={loading}
+                      className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-black text-xs transition-all cursor-pointer shadow-lg shadow-amber-500/30 flex items-center gap-1.5 animate-bounce"
+                    >
+                      📸 Snap &amp; Solve Screen
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleStopScreenShare}
+                      className="px-3 py-2 rounded-xl border border-zinc-300 dark:border-zinc-700 text-zinc-500 hover:text-red-500 text-xs font-bold cursor-pointer"
+                    >
+                      Stop Share
+                    </button>
+                  </div>
+                )}
 
                 <button
                   type="button"
@@ -354,7 +473,7 @@ export default function CopilotPage() {
               <div className="flex justify-between items-center text-xs font-bold">
                 <span className="text-zinc-500 uppercase tracking-wider flex items-center gap-1.5">
                   {isListening && <span className="w-2 h-2 rounded-full bg-red-500 animate-ping" />}
-                  Live Interviewer Question
+                  Live Interviewer Question / Audio Transcript
                 </span>
                 {liveTranscript && (
                   <button
@@ -363,13 +482,13 @@ export default function CopilotPage() {
                     disabled={loading}
                     className="text-emerald-600 dark:text-emerald-400 font-extrabold hover:underline cursor-pointer"
                   >
-                    ⚡ Fetch Answer for Transcript
+                    ⚡ Fetch Answer for Audio
                   </button>
                 )}
               </div>
 
-              <p className="text-sm font-medium italic min-h-[3rem] text-zinc-700 dark:text-zinc-300">
-                {liveTranscript || (isListening ? "Listening to interviewer voice..." : "Click 'Start Live Listening' or type question below.")}
+              <p className="text-sm font-medium italic min-h-[2.5rem] text-zinc-700 dark:text-zinc-300">
+                {liveTranscript || (isListening ? "Listening to interviewer voice..." : "Click 'Listen Audio', 'Start Screen Share', or type question below.")}
               </p>
 
               <div className="flex gap-2 pt-2">
@@ -392,6 +511,24 @@ export default function CopilotPage() {
               </div>
             </div>
 
+            {/* SCREEN CAPTURE PREVIEW THUMBNAIL */}
+            {capturedImagePreview && (
+              <div className="flex items-center gap-4 p-3 rounded-2xl bg-zinc-900 border border-zinc-800">
+                <Image
+                  src={capturedImagePreview}
+                  alt="Captured Screen Snapshot"
+                  width={112}
+                  height={64}
+                  unoptimized
+                  className="w-28 h-16 object-cover rounded-xl border border-zinc-700"
+                />
+                <div className="flex flex-col gap-0.5 text-xs">
+                  <span className="font-bold text-emerald-400">📸 Screen Frame Captured &amp; Processed</span>
+                  <span className="text-zinc-400 text-[11px]">Gemini Vision Engine scanned text &amp; code from this frame.</span>
+                </div>
+              </div>
+            )}
+
             {/* COPILOT OUTPUT HUD DISPLAY */}
             {copilotData && (
               <div className="flex flex-col gap-4 p-6 rounded-3xl bg-white/80 dark:bg-zinc-900/80 border border-emerald-500/40 shadow-2xl backdrop-blur-2xl animate-fade-in">
@@ -399,14 +536,14 @@ export default function CopilotPage() {
                 {/* Header */}
                 <div className="flex justify-between items-center border-b border-zinc-200/60 dark:border-zinc-800/60 pb-3">
                   <div className="flex items-center gap-2 text-xs font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">
-                    <span>⚡ Gold Talking Points</span>
+                    <span>⚡ Gold Talking Points &amp; Vision Solution</span>
                   </div>
                   <button
                     type="button"
-                    onClick={handleCopyAnswer}
+                    onClick={() => handleCopyText(`Talking Points:\n${copilotData.talkingPoints.map((tp) => `- ${tp}`).join("\n")}\n\nModel Answer:\n${copilotData.modelAnswer}`, "all-copilot")}
                     className="px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs cursor-pointer shadow-md transition-colors"
                   >
-                    {copied ? "✅ Copied!" : "📋 1-Click Copy"}
+                    {copiedKey === "all-copilot" ? "✅ Copied All!" : "📋 1-Click Copy"}
                   </button>
                 </div>
 
@@ -430,6 +567,25 @@ export default function CopilotPage() {
                     ))}
                   </ul>
                 </div>
+
+                {/* CODE SOLUTION CONTAINER (When Code / Algorithm Test is Solved from Screen) */}
+                {copilotData.codeSolution && (
+                  <div className="flex flex-col gap-2 bg-zinc-950 p-4 rounded-2xl border border-zinc-800 text-zinc-100">
+                    <div className="flex justify-between items-center border-b border-zinc-800 pb-2">
+                      <span className="text-[10px] font-black uppercase tracking-wider text-amber-400">💻 Optimal Code Solution (Gemini Vision OCR)</span>
+                      <button
+                        type="button"
+                        onClick={() => handleCopyText(copilotData.codeSolution || "", "code-solution")}
+                        className="text-xs font-bold text-amber-400 hover:underline cursor-pointer"
+                      >
+                        {copiedKey === "code-solution" ? "Copied Code!" : "Copy Code"}
+                      </button>
+                    </div>
+                    <pre className="overflow-x-auto font-mono text-xs text-emerald-300 p-2 leading-relaxed whitespace-pre">
+                      {copilotData.codeSolution}
+                    </pre>
+                  </div>
+                )}
 
                 {/* Full Model Answer */}
                 <div className="flex flex-col gap-1.5 bg-zinc-100 dark:bg-zinc-950 p-4 rounded-2xl border border-zinc-200 dark:border-zinc-800">
