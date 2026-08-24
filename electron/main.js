@@ -23,8 +23,8 @@ function createWindow() {
   // Pinned at OS level above all Windows apps (Zoom, Meet, VS Code)
   mainWindow.setAlwaysOnTop(true, "screen-saver");
 
-  // Load Next.js Local Server Copilot Route
-  const copilotUrl = process.env.COPILOT_URL || "http://localhost:3000/copilot";
+  // Load Next.js Local Server Copilot Route with desktop query param
+  const copilotUrl = process.env.COPILOT_URL || "http://localhost:3000/copilot?desktop=true";
   mainWindow.loadURL(copilotUrl);
 
   // Global Keyboard Shortcuts (Alt+S, Alt+L, Alt+H)
