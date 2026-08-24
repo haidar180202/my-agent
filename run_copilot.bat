@@ -13,8 +13,8 @@ start "AI Copilot Server" /min npm run dev
 echo 2. Waiting for server to initialize...
 timeout /t 6 /nobreak >nul
 
-echo 3. Opening Native Desktop App Window...
-start chrome --app="http://localhost:3000/copilot" || start msedge --app="http://localhost:3000/copilot"
+echo 3. Opening Native Transparent Windows Desktop App (Electron Always-On-Top)...
+npx electron electron/main.js
 
 echo.
 echo ✅ AI Copilot Desktop App is now running!
