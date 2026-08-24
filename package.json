@@ -1,13 +1,28 @@
 {
   "name": "my-agent",
   "version": "0.1.0",
-  "private": true,
+  "main": "electron/main.js",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "electron": "electron electron/main.js"
+    "electron": "electron electron/main.js",
+    "pack:exe": "electron-builder --win"
+  },
+  "build": {
+    "appId": "com.myagent.copilot",
+    "productName": "MyAgent AI Interview Copilot",
+    "directories": {
+      "output": "dist"
+    },
+    "win": {
+      "target": ["nsis", "portable"]
+    },
+    "files": [
+      "electron/**/*",
+      "data/**/*"
+    ]
   },
   "dependencies": {
     "@google/genai": "^2.13.0",
@@ -26,6 +41,7 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "electron": "^43.4.1",
+    "electron-builder": "^26.15.3",
     "eslint": "^9",
     "eslint-config-next": "16.2.11",
     "tailwindcss": "^4",
