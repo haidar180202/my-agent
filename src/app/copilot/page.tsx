@@ -125,6 +125,20 @@ export default function CopilotPage() {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
 
+  // Toggle HTML/Body transparent background class for Desktop Electron mode
+  useEffect(() => {
+    if (isDesktopMode && typeof document !== "undefined") {
+      document.documentElement.classList.add("desktop-transparent");
+      document.body.classList.add("desktop-transparent");
+    }
+    return () => {
+      if (typeof document !== "undefined") {
+        document.documentElement.classList.remove("desktop-transparent");
+        document.body.classList.remove("desktop-transparent");
+      }
+    };
+  }, [isDesktopMode]);
+
   // Initialize Speech Recognition
   useEffect(() => {
     if (typeof window !== "undefined") {

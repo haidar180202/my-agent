@@ -24,3 +24,9 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+html.desktop-transparent,
+body.desktop-transparent {
+  background: transparent !important;
+  background-color: transparent !important;
+}
