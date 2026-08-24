@@ -52,6 +52,7 @@ declare global {
 }
 
 type CopilotMode = "general" | "coding" | "behavioral-star" | "system-design";
+type HudStyle = "full" | "stealth-card" | "floating-top-bar";
 
 export default function CopilotPage() {
   const [password, setPassword] = useState("");
@@ -63,8 +64,13 @@ export default function CopilotPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  // Mode Selection State
+  // Mode & Widget Style State
   const [copilotMode, setCopilotMode] = useState<CopilotMode>("general");
+  const [hudStyle, setHudStyle] = useState<HudStyle>("full");
+  const [isWidgetHidden, setIsWidgetHidden] = useState(false);
+
+  // Meeting Timer Counter State
+  const [meetingSeconds, setMeetingSeconds] = useState(0);
 
   // Live STT Speech Recognition State
   const [isListening, setIsListening] = useState(false);
@@ -76,7 +82,6 @@ export default function CopilotPage() {
   const [capturedImagePreview, setCapturedImagePreview] = useState<string | null>(null);
 
   // Stealth HUD Customization State
-  const [isStealthHud, setIsStealthHud] = useState(false);
   const [fontSize, setFontSize] = useState<"sm" | "base" | "lg" | "xl">("base");
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
 
@@ -118,6 +123,17 @@ export default function CopilotPage() {
       }
     }
   }, []);
+
+  // Meeting Timer Ticker
+  useEffect(() => {
+    if (step !== "copilot") return;
+
+    const interval = setInterval(() => {
+      setMeetingSeconds((prev) => prev + 1);
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [step]);
 
   const toggleListening = useCallback(() => {
     if (!recognitionRef.current) {
@@ -270,7 +286,7 @@ export default function CopilotPage() {
       // Alt + H: Toggle Stealth HUD
       if (e.altKey && (e.key === "h" || e.key === "H")) {
         e.preventDefault();
-        setIsStealthHud((prev) => !prev);
+        setHudStyle((prev) => (prev === "floating-top-bar" ? "full" : "floating-top-bar"));
       }
     };
 
@@ -288,12 +304,22 @@ export default function CopilotPage() {
     setStep("copilot");
   };
 
-
-
   const handleCopyText = (text: string, key: string) => {
     navigator.clipboard.writeText(text);
     setCopiedKey(key);
     setTimeout(() => setCopiedKey(null), 3000);
+  };
+
+  const handleClearAll = () => {
+    setLiveTranscript("");
+    setManualQuestionInput("");
+    setCopilotData(null);
+    setCapturedImagePreview(null);
+  };
+
+  const formatTimer = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    return `${mins} mins`;
   };
 
   const getFontSizeClass = () => {
@@ -313,7 +339,7 @@ export default function CopilotPage() {
 
   return (
     <div className={`min-h-screen font-sans selection:bg-emerald-500/30 transition-colors ${
-      isStealthHud
+      hudStyle === "stealth-card" || hudStyle === "floating-top-bar"
         ? "bg-zinc-950/95 text-zinc-100 p-4"
         : "bg-zinc-50 dark:bg-[#0a0a0a] text-zinc-900 dark:text-zinc-50"
     }`}>
@@ -322,16 +348,136 @@ export default function CopilotPage() {
       <video ref={videoRef} className="hidden" playsInline muted />
       <canvas ref={canvasRef} className="hidden" />
 
-      {!isStealthHud && (
+      {hudStyle === "full" && (
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
           <div className="absolute -top-[25%] -left-[10%] w-[50%] h-[50%] rounded-full bg-emerald-600/10 dark:bg-emerald-600/20 blur-[120px]" />
           <div className="absolute top-[20%] -right-[10%] w-[40%] h-[40%] rounded-full bg-teal-600/10 dark:bg-teal-600/20 blur-[120px]" />
         </div>
       )}
 
-      <main className={`relative z-10 mx-auto flex flex-col gap-6 ${isStealthHud ? "max-w-xl" : "max-w-5xl px-4 sm:px-6 py-12"}`}>
+      {/* ========================================================================= */}
+      {/* PARAKEET AI TOP FLOATING TELEPROMPTER BAR WIDGET (USER SCREENSHOT PARITY) */}
+      {/* ========================================================================= */}
+      {step === "copilot" && hudStyle === "floating-top-bar" && (
+        <div className="fixed top-3 left-1/2 -translate-x-1/2 z-50 w-[95%] max-w-4xl animate-fade-in">
+          
+          <div className="flex flex-col rounded-2xl bg-zinc-900/95 border border-zinc-700/80 shadow-2xl backdrop-blur-2xl text-zinc-100 overflow-hidden">
+            
+            {/* Top Bar Header Row */}
+            <div className="flex items-center justify-between gap-3 px-4 py-2.5 bg-zinc-950/80 border-b border-zinc-800/80 text-xs">
+              
+              {/* Left Brand Badge & Hide Toggle */}
+              <div className="flex items-center gap-2">
+                <span className="flex items-center gap-1.5 font-extrabold text-white bg-emerald-950/80 border border-emerald-700/80 px-2.5 py-1 rounded-xl">
+                  <span>🦜</span>
+                  <span className="tracking-tight">ParakeetAI Copilot</span>
+                </span>
+
+                <button
+                  type="button"
+                  onClick={() => setIsWidgetHidden(!isWidgetHidden)}
+                  className="px-2.5 py-1 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-bold cursor-pointer transition-colors"
+                >
+                  {isWidgetHidden ? "Show" : "Hide"}
+                </button>
+              </div>
+
+              {/* Middle Domain & Live Meeting Timer */}
+              <div className="flex items-center gap-3 text-zinc-400 font-mono text-[11px]">
+                <span className="hidden sm:inline-block font-semibold text-zinc-300">meet.google.com / Zoom</span>
+                <span className="flex items-center gap-1 font-bold text-amber-400 bg-amber-950/50 px-2 py-0.5 rounded-lg border border-amber-800/40">
+                  ⏰ {formatTimer(meetingSeconds)}
+                </span>
+              </div>
+
+              {/* Right Control Action Buttons */}
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={toggleListening}
+                  className={`px-3 py-1 rounded-xl font-bold text-xs cursor-pointer flex items-center gap-1.5 transition-all ${
+                    isListening
+                      ? "bg-red-600 hover:bg-red-700 text-white animate-pulse shadow-md"
+                      : "bg-emerald-600 hover:bg-emerald-700 text-white shadow-md"
+                  }`}
+                >
+                  {isListening ? "Stop Listening 🔴" : "Listen 🎙️"}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleClearAll}
+                  className="px-2.5 py-1 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-bold cursor-pointer text-[11px]"
+                >
+                  Clear
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setHudStyle("full")}
+                  className="px-2.5 py-1 rounded-xl bg-red-600/80 hover:bg-red-600 text-white font-bold cursor-pointer text-[11px]"
+                >
+                  Exit
+                </button>
+              </div>
+
+            </div>
+
+            {/* Middle Teleprompter Text Row (Collapsed when Hidden) */}
+            {!isWidgetHidden && (
+              <div className="flex flex-col gap-2 p-3.5 bg-zinc-900/90 text-sm">
+                
+                {/* Spoken Question or Live Transcript Teleprompter */}
+                <div className="text-xs font-semibold text-zinc-300 leading-relaxed italic border-l-2 border-emerald-500 pl-3">
+                  {liveTranscript || copilotData?.modelAnswer || "Listening for interviewer questions or click 'Analyse Screen'..."}
+                </div>
+
+                {/* Bullets Talking Points inside Teleprompter */}
+                {copilotData && copilotData.talkingPoints && (
+                  <div className="flex flex-col gap-1.5 pt-2 border-t border-zinc-800/80 text-xs">
+                    <span className="text-[10px] font-black uppercase text-emerald-400">⚡ Gold Talking Points:</span>
+                    <ul className="list-disc list-inside flex flex-col gap-1 font-semibold text-emerald-200">
+                      {copilotData.talkingPoints.map((tp, idx) => (
+                        <li key={idx}>{tp}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {/* Sub-Bar Action Buttons Row */}
+                <div className="flex items-center justify-center gap-3 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => handleFetchCopilotAnswer()}
+                    disabled={loading}
+                    className="px-4 py-1.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-white font-extrabold text-xs cursor-pointer border border-zinc-700 shadow-md disabled:opacity-50"
+                  >
+                    ⚡ Answer Question
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={isScreenSharing ? handleSnapAndSolveScreen : handleStartScreenShare}
+                    disabled={loading}
+                    className="px-4 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-extrabold text-xs cursor-pointer shadow-md disabled:opacity-50"
+                  >
+                    📸 Analyse Screen
+                  </button>
+                </div>
+
+              </div>
+            )}
+
+          </div>
+
+        </div>
+      )}
+
+      <main className={`relative z-10 mx-auto flex flex-col gap-6 ${
+        hudStyle === "stealth-card" || hudStyle === "floating-top-bar" ? "max-w-2xl pt-24" : "max-w-5xl px-4 sm:px-6 py-12"
+      }`}>
         
-        {!isStealthHud && (
+        {hudStyle === "full" && (
           <div className="flex items-center justify-between">
             <Link href="/" className="inline-flex items-center gap-2 text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100 text-sm font-semibold tracking-wide transition-colors">
               &larr; Back to Dashboard
@@ -427,7 +573,7 @@ export default function CopilotPage() {
         {step === "copilot" && (
           <div className="flex flex-col gap-6">
             
-            {/* RESPONSE MODE SELECTOR & HOTKEY CHEAT-SHEET */}
+            {/* RESPONSE MODE SELECTOR & WIDGET STYLE TOGGLES */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white/60 dark:bg-zinc-900/60 p-4 rounded-2xl border border-zinc-200/60 dark:border-zinc-800/60 backdrop-blur-md">
               
               {/* Response Mode Selector */}
@@ -454,13 +600,27 @@ export default function CopilotPage() {
                 ))}
               </div>
 
-              {/* Hotkey Cheat-Sheet Badge */}
-              <div className="flex items-center gap-2 text-[10px] font-mono font-bold text-zinc-400 bg-zinc-100 dark:bg-zinc-950 px-3 py-1.5 rounded-xl border border-zinc-200 dark:border-zinc-800 shrink-0">
-                <span>[Alt+S] Snap Screen</span>
-                <span>•</span>
-                <span>[Alt+L] Audio</span>
-                <span>•</span>
-                <span>[Alt+H] HUD</span>
+              {/* HUD Widget Style Switcher */}
+              <div className="flex items-center gap-1 bg-zinc-100 dark:bg-zinc-800 p-1 rounded-xl shrink-0">
+                <span className="text-[10px] font-bold text-zinc-400 px-1">Widget View:</span>
+                <button
+                  type="button"
+                  onClick={() => setHudStyle("full")}
+                  className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                    hudStyle === "full" ? "bg-emerald-600 text-white shadow-sm" : "text-zinc-400 hover:text-white"
+                  }`}
+                >
+                  🔲 Full
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setHudStyle("floating-top-bar")}
+                  className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                    hudStyle === "floating-top-bar" ? "bg-emerald-600 text-white shadow-sm" : "text-zinc-400 hover:text-white"
+                  }`}
+                >
+                  🦜 Parakeet Floating Bar
+                </button>
               </div>
             </div>
 
@@ -508,14 +668,6 @@ export default function CopilotPage() {
                     </button>
                   </div>
                 )}
-
-                <button
-                  type="button"
-                  onClick={() => setIsStealthHud(!isStealthHud)}
-                  className="px-3.5 py-2 rounded-xl border border-zinc-200 dark:border-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-800 text-xs font-semibold cursor-pointer"
-                >
-                  {isStealthHud ? "🔲 Full View" : "👓 Stealth HUD [Alt+H]"}
-                </button>
               </div>
 
               {/* Font Size Scaling */}
