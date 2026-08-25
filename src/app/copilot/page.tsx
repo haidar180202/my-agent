@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
 import Image from "next/image";
@@ -69,30 +69,22 @@ export default function CopilotPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  // Desktop Mode Detection State
-  const [isDesktopMode] = useState<boolean>(() => {
-    if (typeof window !== "undefined") {
+  // React 19 Hydration-Safe Desktop Mode Detection via useSyncExternalStore
+  const isDesktopMode = useSyncExternalStore(
+    () => () => {},
+    () => {
+      if (typeof window === "undefined") return false;
       const urlParams = new URLSearchParams(window.location.search);
       const desktopParam = urlParams.get("desktop");
       const userAgent = navigator.userAgent.toLowerCase();
       return desktopParam === "true" || userAgent.includes("electron");
-    }
-    return false;
-  });
+    },
+    () => false,
+  );
 
   // Mode & Widget Style State
   const [copilotMode, setCopilotMode] = useState<CopilotMode>("general");
-  const [hudStyle, setHudStyle] = useState<HudStyle>(() => {
-    if (typeof window !== "undefined") {
-      const urlParams = new URLSearchParams(window.location.search);
-      const desktopParam = urlParams.get("desktop");
-      const userAgent = navigator.userAgent.toLowerCase();
-      if (desktopParam === "true" || userAgent.includes("electron")) {
-        return "floating-top-bar";
-      }
-    }
-    return "full";
-  });
+  const [hudStyle, setHudStyle] = useState<HudStyle>("full");
   const [isWidgetHidden, setIsWidgetHidden] = useState(false);
 
   // Glass Stealth Opacity State (Default to 40% Glass Mode)
@@ -594,7 +586,7 @@ export default function CopilotPage() {
   );
 
   return (
-    <div className={`min-h-screen font-sans selection:bg-emerald-500/30 transition-colors ${
+    <div suppressHydrationWarning className={`min-h-screen font-sans selection:bg-emerald-500/30 transition-colors ${
       isDesktopMode
         ? "bg-transparent text-zinc-100 p-2 overflow-hidden"
         : hudStyle === "stealth-card" || hudStyle === "floating-top-bar"
