@@ -1,18 +1,17 @@
-const { app, BrowserWindow, globalShortcut, session, desktopCapturer } = require("electron");
+const { app, BrowserWindow, globalShortcut, session, desktopCapturer, ipcMain, screen } = require("electron");
 
 let mainWindow = null;
 
 function createWindow() {
   mainWindow = new BrowserWindow({
-    width: 780,
-    height: 220,
-    x: undefined,
-    y: 20,
+    width: 1100,
+    height: 750,
+    center: true,
     transparent: true,
     frame: false,
-    alwaysOnTop: true,
+    alwaysOnTop: false,
     resizable: true,
-    hasShadow: false,
+    hasShadow: true,
     skipTaskbar: false,
     webPreferences: {
       nodeIntegration: true,
@@ -20,14 +19,30 @@ function createWindow() {
     },
   });
 
-  // Pinned at OS level above all Windows apps (Zoom, Meet, VS Code)
-  mainWindow.setAlwaysOnTop(true, "screen-saver");
+  // Initial load opens Dashboard Homepage
+  const initialUrl = process.env.COPILOT_URL || "http://localhost:3000/";
+  mainWindow.loadURL(initialUrl);
 
-  // Load Next.js Local Server Copilot Route with desktop query param
-  const copilotUrl = process.env.COPILOT_URL || "http://localhost:3000/copilot?desktop=true";
-  mainWindow.loadURL(copilotUrl);
+  // IPC Event: Switch to Floating HUD Mode
+  ipcMain.on("enter-hud-mode", () => {
+    if (!mainWindow) return;
+    const primaryDisplay = screen.getPrimaryDisplay();
+    const { width } = primaryDisplay.workAreaSize;
 
-  // Global Keyboard Shortcuts (Alt+S, Alt+L, Alt+H)
+    mainWindow.setSize(780, 220);
+    mainWindow.setPosition(Math.floor((width - 780) / 2), 20);
+    mainWindow.setAlwaysOnTop(true, "screen-saver");
+  });
+
+  // IPC Event: Switch to Dashboard Mode
+  ipcMain.on("exit-hud-mode", () => {
+    if (!mainWindow) return;
+    mainWindow.setAlwaysOnTop(false);
+    mainWindow.setSize(1100, 750);
+    mainWindow.center();
+  });
+
+  // Global Keyboard Shortcuts (Alt+S, Alt+L)
   globalShortcut.register("Alt+S", () => {
     if (mainWindow) {
       mainWindow.webContents.send("trigger-snap-screen");

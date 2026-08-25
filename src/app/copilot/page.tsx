@@ -131,6 +131,31 @@ export default function CopilotPage() {
     };
   }, [isDesktopMode]);
 
+  // Electron IPC Window Resizing Trigger
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const electronWin = window as unknown as {
+        require?: (module: string) => {
+          ipcRenderer: {
+            send: (channel: string, ...args: unknown[]) => void;
+          };
+        };
+      };
+      if (electronWin.require) {
+        try {
+          const { ipcRenderer } = electronWin.require("electron");
+          if (step === "copilot" && hudStyle === "floating-top-bar") {
+            ipcRenderer.send("enter-hud-mode");
+          } else {
+            ipcRenderer.send("exit-hud-mode");
+          }
+        } catch {
+          // Ignore if not in electron
+        }
+      }
+    }
+  }, [step, hudStyle]);
+
   // Initialize Speech Recognition
   useEffect(() => {
     if (typeof window !== "undefined") {
