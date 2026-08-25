@@ -496,10 +496,9 @@ Do NOT wrap the response in markdown blocks (e.g., \`\`\`json). Just the raw JSO
           "Loading serverless Puppeteer (puppeteer-core & @sparticuz/chromium)...",
         );
         const puppeteerCore = await import("puppeteer-core");
-        const sparticuzChromiumRaw = (await import("@sparticuz/chromium"))
-          .default;
-        const sparticuzChromium =
-          sparticuzChromiumRaw as unknown as ChromiumInterface;
+        const chromiumModule = await import("@sparticuz/chromium");
+        const sparticuzChromium = ((chromiumModule as unknown as { default: ChromiumInterface }).default ||
+          chromiumModule) as unknown as ChromiumInterface;
 
         let chromiumPath: string;
         try {
