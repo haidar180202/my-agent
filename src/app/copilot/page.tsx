@@ -664,13 +664,12 @@ export default function CopilotPage() {
       {/* RENDER PARAKEET TELEPROMPTER WIDGET INSIDE NATIVE WINDOWS OS PiP WINDOW */}
       {pipWindow && createPortal(renderTeleprompterWidget(true), pipWindow.document.body)}
 
-      {/* RENDER IN-PAGE FLOATING BAR IF PIP WINDOW OR ELECTRON DESKTOP MODE IS ACTIVE */}
-      {(step === "copilot" || isDesktopMode) && (hudStyle === "floating-top-bar" || isDesktopMode) && !pipWindow && renderTeleprompterWidget(false)}
+      {/* RENDER FLOATING BAR ONLY WHEN STEP IS COPILOT */}
+      {step === "copilot" && hudStyle === "floating-top-bar" && !pipWindow && renderTeleprompterWidget(false)}
 
-      {!isDesktopMode && (
-        <main className={`relative z-10 mx-auto flex flex-col gap-6 ${
-          hudStyle === "stealth-card" || hudStyle === "floating-top-bar" ? "max-w-2xl pt-24" : "max-w-5xl px-4 sm:px-6 py-12"
-        }`}>
+      {/* RENDER MAIN CONTAINER WHEN STEP IS SETUP OR FULL HUD STYLE */}
+      {(step === "setup" || hudStyle === "full") && (
+        <main className="relative z-10 mx-auto flex flex-col gap-6 max-w-5xl px-4 sm:px-6 py-8">
           
           {hudStyle === "full" && (
             <div className="flex items-center justify-between">
