@@ -501,10 +501,21 @@ Do NOT wrap the response in markdown blocks (e.g., \`\`\`json). Just the raw JSO
         const sparticuzChromium =
           sparticuzChromiumRaw as unknown as ChromiumInterface;
 
+        let chromiumPath: string;
+        try {
+          chromiumPath = await sparticuzChromium.executablePath();
+        } catch (err) {
+          console.warn("Local @sparticuz/chromium bin directory not found, fetching remote tarball:", err);
+          const getExecPath = sparticuzChromium.executablePath as unknown as (input?: string) => Promise<string>;
+          chromiumPath = await getExecPath(
+            "https://github.com/Sparticuz/chromium/releases/download/v133.0.0/chromium-v133.0.0-pack.tar"
+          );
+        }
+
         browser = await puppeteerCore.launch({
           args: sparticuzChromium.args,
           defaultViewport: sparticuzChromium.defaultViewport as unknown as { width: number; height: number; },
-          executablePath: await sparticuzChromium.executablePath(),
+          executablePath: chromiumPath,
           headless: (sparticuzChromium.headless as boolean) || true,
         });
       } else {
