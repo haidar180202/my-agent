@@ -501,13 +501,13 @@ Do NOT wrap the response in markdown blocks (e.g., \`\`\`json). Just the raw JSO
           chromiumModule) as unknown as ChromiumInterface;
 
         let chromiumPath: string;
-        const REMOTE_PACK_URL = "https://github.com/Sparticuz/chromium/releases/download/v131.0.0/chromium-v131.0.0-pack.tar";
         try {
+          chromiumPath = await sparticuzChromium.executablePath();
+        } catch (err) {
+          console.warn("Standard executablePath failed, attempting remote pack fallback:", err);
+          const REMOTE_PACK_URL = "https://github.com/Sparticuz/chromium/releases/download/v131.0.0/chromium-v131.0.0-pack.tar";
           const getExecPath = sparticuzChromium.executablePath as unknown as (input?: string) => Promise<string>;
           chromiumPath = await getExecPath(REMOTE_PACK_URL);
-        } catch (err) {
-          console.warn("Failed loading remote chromium pack, falling back to default:", err);
-          chromiumPath = await sparticuzChromium.executablePath();
         }
 
         browser = await puppeteerCore.launch({
