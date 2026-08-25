@@ -60,7 +60,12 @@ type HudStyle = "full" | "stealth-card" | "floating-top-bar";
 type WidgetOpacity = "100" | "70" | "40" | "20";
 
 export default function CopilotPage() {
-  const [password, setPassword] = useState("");
+  const [password, setPassword] = useState<string>(() => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("master_cv_pass") || "";
+    }
+    return "";
+  });
   const [companyName, setCompanyName] = useState("");
   const [targetRole, setTargetRole] = useState("");
   const [jobDescription, setJobDescription] = useState("");
@@ -264,9 +269,32 @@ export default function CopilotPage() {
     setIsScreenSharing(false);
   }, []);
 
+
+
   // Trigger Gemini Copilot Answer Fetch
   const handleFetchCopilotAnswer = useCallback(
     async (queryText?: string, screenImageBase64?: string) => {
+      let activePassword = password;
+
+      // Auto-restore or prompt for password if missing
+      if (!activePassword && typeof window !== "undefined") {
+        const savedPass = localStorage.getItem("master_cv_pass");
+        if (savedPass) {
+          activePassword = savedPass;
+          setPassword(savedPass);
+        } else {
+          const userPrompt = prompt("🔑 Master CV Vault password required to decrypt your experience:");
+          if (userPrompt && userPrompt.trim()) {
+            activePassword = userPrompt.trim();
+            setPassword(activePassword);
+            localStorage.setItem("master_cv_pass", activePassword);
+          } else {
+            setError("Master Password is required to decrypt your Master CV vault.");
+            return;
+          }
+        }
+      }
+
       const questionToAsk = queryText || liveTranscript || manualQuestionInput;
       if (!questionToAsk.trim() && !screenImageBase64) {
         setError("Please speak, type a question, or capture a screen image to get AI copilot answer");
@@ -281,7 +309,7 @@ export default function CopilotPage() {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            password,
+            password: activePassword,
             companyName,
             targetRole,
             jobDescription,
@@ -420,6 +448,9 @@ export default function CopilotPage() {
     if (!password) {
       setError("Decryption password is required");
       return;
+    }
+    if (typeof window !== "undefined") {
+      localStorage.setItem("master_cv_pass", password);
     }
     setError("");
     setStep("copilot");
