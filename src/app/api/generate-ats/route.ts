@@ -68,26 +68,24 @@ interface ChromiumInterface {
   headless: boolean | string;
 }
 
-// HTML Generator Helper
+// HTML Generator Helper (A4 Precision & ATS Executive Design)
 function generateHtml(resumeData: TailoredResume, theme = "classic") {
-  let primaryColor = "#000000";
-  let fontStack = "'Helvetica Neue', Helvetica, Arial, sans-serif";
-  let sectionBorder = "1px solid #000";
-  let accentColor = "#333";
-  let secondaryColor = "#555";
+  let primaryColor = "#0f172a"; // Executive Dark Slate
+  let headerColor = "#0f172a";
+  const fontStack = "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif";
+  let sectionBorder = "1.5px solid #0f172a";
+  let secondaryColor = "#475569";
 
   if (theme === "modern-blue") {
-    primaryColor = "#1d4ed8"; // Deep Blue
-    fontStack = "'Inter', system-ui, -apple-system, sans-serif";
-    sectionBorder = "2px solid #e2e8f0"; // slate-200 border
-    accentColor = "#2563eb"; // blue-600
-    secondaryColor = "#475569"; // slate-600
+    primaryColor = "#1e40af"; // Deep Navy/Royal Blue
+    headerColor = "#1e3a8a";
+    sectionBorder = "1.5px solid #1e40af";
+    secondaryColor = "#334155";
   } else if (theme === "emerald") {
-    primaryColor = "#059669"; // Emerald green
-    fontStack = "'Inter', system-ui, -apple-system, sans-serif";
-    sectionBorder = "2px solid #ecfdf5"; // soft green accent border
-    accentColor = "#047857"; // emerald-700
-    secondaryColor = "#374151"; // gray-700
+    primaryColor = "#047857"; // Deep Emerald Green
+    headerColor = "#064e3b";
+    sectionBorder = "1.5px solid #047857";
+    secondaryColor = "#334155";
   }
 
   // Robust skills extraction
@@ -97,136 +95,346 @@ function generateHtml(resumeData: TailoredResume, theme = "classic") {
       ? Object.values(resumeData.skills).flat()
       : [];
 
+  const contactItems = [
+    resumeData.personalInfo?.location,
+    resumeData.personalInfo?.phone,
+    resumeData.personalInfo?.email,
+    resumeData.personalInfo?.linkedin,
+    resumeData.personalInfo?.portfolio,
+  ].filter(Boolean);
+
   return `
   <!DOCTYPE html>
   <html lang="en">
   <head>
       <meta charset="UTF-8">
+      <title>${resumeData.personalInfo?.name || "Executive Resume"}</title>
       <style>
-          @page { size: A4; margin: 0; }
-          body { font-family: ${fontStack}; font-size: 10pt; line-height: 1.4; color: #333; margin: 0; padding: 15mm 20mm; }
-          h1 { font-size: 18pt; font-weight: bold; margin-bottom: 2px; text-transform: uppercase; text-align: center; color: ${primaryColor}; }
-          .contact-info { text-align: center; font-size: 9pt; margin-bottom: 15px; color: ${secondaryColor}; }
-          .section-title { font-size: 11pt; font-weight: bold; text-transform: uppercase; border-bottom: ${sectionBorder}; color: ${primaryColor}; margin-top: 15px; margin-bottom: 5px; padding-bottom: 2px; }
-          p { margin: 0 0 5px 0; text-align: justify; }
-          ul { margin: 0 0 10px 0; padding-left: 20px; }
-          li { margin-bottom: 3px; text-align: justify; }
-          li strong { color: ${accentColor}; }
-          .job-header { display: flex; justify-content: space-between; font-weight: bold; margin-bottom: 2px; }
-          .job-title { font-weight: bold; color: ${accentColor}; }
-          .job-date { font-style: italic; font-weight: normal; color: #666; }
+          @page {
+              size: A4 portrait;
+              margin: 0;
+          }
+          * {
+              box-sizing: border-box;
+          }
+          body {
+              font-family: ${fontStack};
+              font-size: 9.5pt;
+              line-height: 1.45;
+              color: #1e293b;
+              background: #ffffff;
+              margin: 0 auto;
+              padding: 14mm 16mm;
+              width: 210mm;
+              min-height: 297mm;
+              -webkit-print-color-adjust: exact;
+          }
+          .header {
+              text-align: center;
+              margin-bottom: 12px;
+              border-bottom: 2px solid #f1f5f9;
+              padding-bottom: 10px;
+          }
+          h1 {
+              font-size: 20pt;
+              font-weight: 800;
+              letter-spacing: -0.02em;
+              margin: 0 0 4px 0;
+              text-transform: uppercase;
+              color: ${headerColor};
+          }
+          .role-title {
+              font-size: 10.5pt;
+              font-weight: 600;
+              color: ${primaryColor};
+              text-transform: uppercase;
+              letter-spacing: 0.05em;
+              margin-bottom: 6px;
+          }
+          .contact-info {
+              text-align: center;
+              font-size: 8.5pt;
+              color: ${secondaryColor};
+              font-weight: 500;
+          }
+          .contact-info span {
+              margin: 0 4px;
+          }
+          .section-block {
+              margin-bottom: 12px;
+              break-inside: avoid;
+              page-break-inside: avoid;
+          }
+          .section-title {
+              font-size: 10.5pt;
+              font-weight: 750;
+              text-transform: uppercase;
+              letter-spacing: 0.06em;
+              border-bottom: ${sectionBorder};
+              color: ${headerColor};
+              margin-top: 10px;
+              margin-bottom: 6px;
+              padding-bottom: 2px;
+          }
+          p.summary-text {
+              margin: 0;
+              text-align: justify;
+              color: #334155;
+              font-size: 9.5pt;
+          }
+          .skills-container {
+              font-size: 9pt;
+              color: #334155;
+              line-height: 1.5;
+              font-weight: 500;
+          }
+          .job-item, .project-item {
+              margin-bottom: 8px;
+              break-inside: avoid;
+              page-break-inside: avoid;
+          }
+          .job-header {
+              display: flex;
+              justify-content: space-between;
+              align-items: baseline;
+              font-size: 9.5pt;
+              margin-bottom: 2px;
+          }
+          .company-name {
+              font-weight: 700;
+              color: #0f172a;
+          }
+          .job-title {
+              font-weight: 600;
+              color: ${primaryColor};
+          }
+          .job-date {
+              font-size: 8.5pt;
+              font-weight: 500;
+              color: #64748b;
+              white-space: nowrap;
+          }
+          ul.bullet-list {
+              margin: 3px 0 6px 0;
+              padding-left: 16px;
+          }
+          ul.bullet-list li {
+              margin-bottom: 2.5px;
+              text-align: justify;
+              color: #334155;
+              font-size: 9pt;
+          }
+          ul.bullet-list li strong {
+              color: #0f172a;
+              font-weight: 650;
+          }
+          .education-item {
+              display: flex;
+              justify-content: space-between;
+              align-items: baseline;
+              font-size: 9.5pt;
+              margin-bottom: 4px;
+              break-inside: avoid;
+              page-break-inside: avoid;
+          }
+          .degree-title {
+              font-weight: 700;
+              color: #0f172a;
+          }
+          .school-name {
+              font-weight: 500;
+              color: ${secondaryColor};
+          }
       </style>
   </head>
   <body>
-      <h1>${resumeData.personalInfo?.name || "MUHAMMAD HAIDAR SHAHAB"}</h1>
-      <div class="contact-info">
-          ${resumeData.personalInfo?.location || ""} | ${resumeData.personalInfo?.phone || ""} | ${resumeData.personalInfo?.email || ""} <br/>
-          ${resumeData.personalInfo?.linkedin || ""} | ${resumeData.personalInfo?.portfolio || ""}
+      <div class="header">
+          <h1>${resumeData.personalInfo?.name || "MUHAMMAD HAIDAR SHAHAB"}</h1>
+          ${resumeData.personalInfo?.title ? `<div class="role-title">${resumeData.personalInfo.title}</div>` : ""}
+          <div class="contact-info">
+              ${contactItems.join(" &nbsp;•&nbsp; ")}
+          </div>
       </div>
 
-      <div class="section-title">PROFESSIONAL SUMMARY</div>
-      <p>${resumeData.summary || ""}</p>
+      ${resumeData.summary ? `
+      <div class="section-block">
+          <div class="section-title">PROFESSIONAL SUMMARY</div>
+          <p class="summary-text">${resumeData.summary}</p>
+      </div>
+      ` : ""}
 
-      <div class="section-title">CORE COMPETENCIES</div>
-      <p>${skillsList.join(" • ")}</p>
-
-      <div class="section-title">PROFESSIONAL EXPERIENCE</div>
-      ${(resumeData.experience || [])
-        .map(
-          (exp: Experience) => `
-          <div class="job-header">
-              <span>${exp.company || ""} — <span class="job-title">${exp.role || ""}</span></span>
-              <span class="job-date">${exp.date || `${exp.startDate || ""} - ${exp.endDate || ""}`}</span>
+      ${skillsList.length > 0 ? `
+      <div class="section-block">
+          <div class="section-title">CORE COMPETENCIES &amp; TECHNOLOGIES</div>
+          <div class="skills-container">
+              ${skillsList.join(" &nbsp;•&nbsp; ")}
           </div>
-          <ul>
-              ${(exp.bullets || exp.highlights || []).map((b: string) => `<li>${b}</li>`).join("")}
-          </ul>
-      `,
-        )
-        .join("")}
+      </div>
+      ` : ""}
 
-      <div class="section-title">FEATURED AI PROJECTS</div>
-      ${(resumeData.projects || [])
-        .map(
-          (proj: Project) => `
-          <div class="job-header">
-              <span>${proj.name || ""} ${proj.type ? `— <span class="job-title">${proj.type}</span>` : ""}</span>
-              <span class="job-date">${proj.date || ""}</span>
-          </div>
-          <ul>
-              ${(proj.bullets || proj.highlights || []).map((b: string) => `<li>${b}</li>`).join("")}
-          </ul>
-      `,
-        )
-        .join("")}
+      ${(resumeData.experience || []).length > 0 ? `
+      <div class="section-block">
+          <div class="section-title">PROFESSIONAL EXPERIENCE</div>
+          ${(resumeData.experience || [])
+            .map(
+              (exp: Experience) => `
+              <div class="job-item">
+                  <div class="job-header">
+                      <span><span class="company-name">${exp.company || ""}</span> — <span class="job-title">${exp.role || ""}</span></span>
+                      <span class="job-date">${exp.date || `${exp.startDate || ""} - ${exp.endDate || ""}`}</span>
+                  </div>
+                  <ul class="bullet-list">
+                      ${(exp.bullets || exp.highlights || []).map((b: string) => `<li>${b}</li>`).join("")}
+                  </ul>
+              </div>
+          `,
+            )
+            .join("")}
+      </div>
+      ` : ""}
 
-      <div class="section-title">EDUCATION</div>
-      ${(resumeData.education || [])
-        .map(
-          (edu: Education) => `
-          <div class="job-header">
-              <span><strong>${edu.degree || ""}</strong></span>
-              <span class="job-date">${edu.school || edu.institution || ""} (${edu.date || `${edu.startDate || ""} - ${edu.endDate || ""}`})</span>
-          </div>
-      `,
-        )
-        .join("")}
+      ${(resumeData.projects || []).length > 0 ? `
+      <div class="section-block">
+          <div class="section-title">FEATURED PROJECTS</div>
+          ${(resumeData.projects || [])
+            .map(
+              (proj: Project) => `
+              <div class="project-item">
+                  <div class="job-header">
+                      <span><span class="company-name">${proj.name || ""}</span> ${proj.type ? `— <span class="job-title">${proj.type}</span>` : ""}</span>
+                      <span class="job-date">${proj.date || ""}</span>
+                  </div>
+                  <ul class="bullet-list">
+                      ${(proj.bullets || proj.highlights || []).map((b: string) => `<li>${b}</li>`).join("")}
+                  </ul>
+              </div>
+          `,
+            )
+            .join("")}
+      </div>
+      ` : ""}
+
+      ${(resumeData.education || []).length > 0 ? `
+      <div class="section-block">
+          <div class="section-title">EDUCATION</div>
+          ${(resumeData.education || [])
+            .map(
+              (edu: Education) => `
+              <div class="education-item">
+                  <span><span class="degree-title">${edu.degree || ""}</span>, <span class="school-name">${edu.school || edu.institution || ""}</span></span>
+                  <span class="job-date">${edu.date || `${edu.startDate || ""} - ${edu.endDate || ""}`}</span>
+              </div>
+          `,
+            )
+            .join("")}
+      </div>
+      ` : ""}
   </body>
   </html>
   `;
 }
 
-// Cover Letter HTML Generator Helper
+// Cover Letter HTML Generator Helper (A4 Precision & Executive Formatting)
 function generateCoverLetterHtml(
   resumeData: TailoredResume,
   coverLetterText: string,
   theme = "classic",
 ) {
-  let primaryColor = "#000000";
-  let fontStack = "'Helvetica Neue', Helvetica, Arial, sans-serif";
-  let accentColor = "#333";
+  let primaryColor = "#0f172a";
+  const fontStack = "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif";
 
   if (theme === "modern-blue") {
-    primaryColor = "#1d4ed8";
-    fontStack = "'Inter', system-ui, -apple-system, sans-serif";
-    accentColor = "#1e293b";
+    primaryColor = "#1e40af";
   } else if (theme === "emerald") {
-    primaryColor = "#059669";
-    fontStack = "'Inter', system-ui, -apple-system, sans-serif";
-    accentColor = "#0f172a";
+    primaryColor = "#047857";
   }
 
-  const formattedText = coverLetterText.replace(/\n/g, "<br/>");
+  const formattedText = coverLetterText
+    .split("\n\n")
+    .map((p) => `<p style="margin-bottom: 12px;">${p.replace(/\n/g, "<br/>")}</p>`)
+    .join("");
+
+  const contactItems = [
+    resumeData.personalInfo?.location,
+    resumeData.personalInfo?.phone,
+    resumeData.personalInfo?.email,
+  ].filter(Boolean);
+
   return `
   <!DOCTYPE html>
   <html lang="en">
   <head>
       <meta charset="UTF-8">
+      <title>Cover Letter - ${resumeData.personalInfo?.name || "Candidate"}</title>
       <style>
-          @page { size: A4; margin: 0; }
-          body { font-family: ${fontStack}; font-size: 10pt; line-height: 1.5; color: ${accentColor}; margin: 0; padding: 25mm 20mm; }
-          .date { margin-bottom: 20px; }
-          .sender-info { font-weight: bold; margin-bottom: 20px; line-height: 1.4; color: ${primaryColor}; }
-          .recipient-info { margin-bottom: 20px; }
-          .body { text-align: justify; }
+          @page {
+              size: A4 portrait;
+              margin: 0;
+          }
+          * {
+              box-sizing: border-box;
+          }
+          body {
+              font-family: ${fontStack};
+              font-size: 10pt;
+              line-height: 1.6;
+              color: #1e293b;
+              background: #ffffff;
+              margin: 0 auto;
+              padding: 18mm 20mm;
+              width: 210mm;
+              min-height: 297mm;
+              -webkit-print-color-adjust: exact;
+          }
+          .sender-header {
+              border-bottom: 2px solid ${primaryColor};
+              padding-bottom: 12px;
+              margin-bottom: 20px;
+          }
+          .sender-name {
+              font-size: 18pt;
+              font-weight: 800;
+              color: ${primaryColor};
+              text-transform: uppercase;
+              letter-spacing: -0.01em;
+          }
+          .sender-contact {
+              font-size: 8.5pt;
+              color: #475569;
+              margin-top: 4px;
+          }
+          .date {
+              font-size: 9.5pt;
+              color: #64748b;
+              margin-bottom: 16px;
+              font-weight: 500;
+          }
+          .recipient-info {
+              font-size: 10pt;
+              font-weight: 700;
+              color: #0f172a;
+              margin-bottom: 16px;
+          }
+          .letter-body {
+              text-align: justify;
+              font-size: 9.5pt;
+              color: #334155;
+          }
       </style>
   </head>
   <body>
-      <div class="sender-info">
-          ${resumeData.personalInfo?.name || "MUHAMMAD HAIDAR SHAHAB"}<br/>
-          <span style="font-weight: normal; color: #555;">
-            ${resumeData.personalInfo?.location || ""}<br/>
-            ${resumeData.personalInfo?.phone || ""} | ${resumeData.personalInfo?.email || ""}
-          </span>
+      <div class="sender-header">
+          <div class="sender-name">${resumeData.personalInfo?.name || "MUHAMMAD HAIDAR SHAHAB"}</div>
+          <div class="sender-contact">${contactItems.join(" &nbsp;•&nbsp; ")}</div>
       </div>
       
       <div class="date">${new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })}</div>
       
       <div class="recipient-info">
-          <strong>To the Hiring Team / Recruiter</strong>
+          To the Hiring Team / Recruitment Manager
       </div>
       
-      <div class="body">
+      <div class="letter-body">
           ${formattedText}
       </div>
   </body>
