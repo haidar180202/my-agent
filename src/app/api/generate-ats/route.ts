@@ -545,6 +545,9 @@ CRITICAL DIRECTIVES FOR TAILORING (MUST OBEY STRICTLY):
 4. RETAIN MASTER RESUME SCOPE: Do NOT strip away software engineering tools, frameworks, or technical responsibilities. Every experience item MUST contain concrete technical details alongside leadership metrics.
 5. COVER LETTER: Write a compelling, highly professional 1-page Cover Letter that showcases the candidate as a high-impact Technical Engineer / Technical Lead. IMPORTANT: ALWAYS use the real date "${currentDateString}" instead of any placeholder like [Current Date].
 6. RECRUITER OUTREACH EMAIL: Write a high-converting, professional, ready-to-send Recruiter Outreach Email / LinkedIn message with a clear Subject line and fully formatted body text. Use "${currentDateString}" for any date references.
+7. YEARS OF EXPERIENCE CALIBRATION (STRICT RULE):
+   - For TECHNICAL / DEVELOPER / ENGINEERING roles (e.g. Fullstack Developer, Frontend/Backend Developer, Software Engineer, AI Integrations): State approximately 5 YEARS (~5 years) of technical software development & engineering experience (reflecting candidate's timeline from 2021 to present).
+   - For NON-TECHNICAL / MANAGEMENT roles (e.g. Project Manager, Product Manager): State a conservative minimum realistic figure (1–2 years of technical project coordination & agile delivery leadership). NEVER exaggerate pure management years.
 
 TARGET ROLE: ${targetRole}
 JOB DESCRIPTION:
