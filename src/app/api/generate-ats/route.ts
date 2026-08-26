@@ -119,37 +119,37 @@ function generateHtml(resumeData: TailoredResume, theme = "classic") {
           }
           body {
               font-family: ${fontStack};
-              font-size: 9.5pt;
-              line-height: 1.45;
+              font-size: 9pt;
+              line-height: 1.38;
               color: #1e293b;
               background: #ffffff;
               margin: 0 auto;
-              padding: 14mm 16mm;
+              padding: 10mm 14mm;
               width: 210mm;
-              min-height: 297mm;
+              box-sizing: border-box;
               -webkit-print-color-adjust: exact;
           }
           .header {
               text-align: center;
-              margin-bottom: 12px;
-              border-bottom: 2px solid #f1f5f9;
-              padding-bottom: 10px;
+              margin-bottom: 8px;
+              border-bottom: 1.5px solid #e2e8f0;
+              padding-bottom: 6px;
           }
           h1 {
-              font-size: 20pt;
+              font-size: 18pt;
               font-weight: 800;
               letter-spacing: -0.02em;
-              margin: 0 0 4px 0;
+              margin: 0 0 2px 0;
               text-transform: uppercase;
               color: ${headerColor};
           }
           .role-title {
-              font-size: 10.5pt;
+              font-size: 9.5pt;
               font-weight: 600;
               color: ${primaryColor};
               text-transform: uppercase;
               letter-spacing: 0.05em;
-              margin-bottom: 6px;
+              margin-bottom: 4px;
           }
           .contact-info {
               text-align: center;
@@ -161,35 +161,38 @@ function generateHtml(resumeData: TailoredResume, theme = "classic") {
               margin: 0 4px;
           }
           .section-block {
-              margin-bottom: 12px;
-              break-inside: avoid;
-              page-break-inside: avoid;
+              margin-bottom: 8px;
+              break-inside: auto;
+              page-break-inside: auto;
           }
           .section-title {
-              font-size: 10.5pt;
+              font-size: 10pt;
               font-weight: 750;
               text-transform: uppercase;
-              letter-spacing: 0.06em;
+              letter-spacing: 0.05em;
               border-bottom: ${sectionBorder};
               color: ${headerColor};
-              margin-top: 10px;
-              margin-bottom: 6px;
-              padding-bottom: 2px;
+              margin-top: 8px;
+              margin-bottom: 4px;
+              padding-bottom: 1px;
+              break-after: avoid;
+              page-break-after: avoid;
           }
           p.summary-text {
               margin: 0;
               text-align: justify;
               color: #334155;
-              font-size: 9.5pt;
+              font-size: 9pt;
+              line-height: 1.38;
           }
           .skills-container {
-              font-size: 9pt;
+              font-size: 8.5pt;
               color: #334155;
-              line-height: 1.5;
+              line-height: 1.45;
               font-weight: 500;
           }
           .job-item, .project-item {
-              margin-bottom: 8px;
+              margin-bottom: 6px;
               break-inside: avoid;
               page-break-inside: avoid;
           }
@@ -197,8 +200,8 @@ function generateHtml(resumeData: TailoredResume, theme = "classic") {
               display: flex;
               justify-content: space-between;
               align-items: baseline;
-              font-size: 9.5pt;
-              margin-bottom: 2px;
+              font-size: 9pt;
+              margin-bottom: 1px;
           }
           .company-name {
               font-weight: 700;
@@ -209,20 +212,21 @@ function generateHtml(resumeData: TailoredResume, theme = "classic") {
               color: ${primaryColor};
           }
           .job-date {
-              font-size: 8.5pt;
+              font-size: 8pt;
               font-weight: 500;
               color: #64748b;
               white-space: nowrap;
           }
           ul.bullet-list {
-              margin: 3px 0 6px 0;
-              padding-left: 16px;
+              margin: 2px 0 4px 0;
+              padding-left: 15px;
           }
           ul.bullet-list li {
-              margin-bottom: 2.5px;
+              margin-bottom: 1.5px;
               text-align: justify;
               color: #334155;
-              font-size: 9pt;
+              font-size: 8.5pt;
+              line-height: 1.35;
           }
           ul.bullet-list li strong {
               color: #0f172a;
@@ -232,8 +236,8 @@ function generateHtml(resumeData: TailoredResume, theme = "classic") {
               display: flex;
               justify-content: space-between;
               align-items: baseline;
-              font-size: 9.5pt;
-              margin-bottom: 4px;
+              font-size: 9pt;
+              margin-bottom: 3px;
               break-inside: avoid;
               page-break-inside: avoid;
           }
