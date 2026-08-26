@@ -59,15 +59,17 @@ export default function AtsGeneratePage() {
   // AI Tailored Data
   const [tailoredResume, setTailoredResume] = useState<TailoredResume | null>(null);
   const [coverLetterText, setCoverLetterText] = useState("");
+  const [coldEmailText, setColdEmailText] = useState("");
   const [matchScore, setMatchScore] = useState<number | null>(null);
   const [missingKeywords, setMissingKeywords] = useState<string[]>([]);
+  const [copiedEmail, setCopiedEmail] = useState(false);
 
   // Resulting PDF URLs
   const [result, setResult] = useState<{ cvUrl?: string; coverLetterUrl?: string } | null>(null);
   
   // Tab states
-  const [activeTab, setActiveTab] = useState<"cv" | "coverLetter">("cv");
-  const [editorTab, setEditorTab] = useState<"resume" | "coverLetter">("resume");
+  const [activeTab, setActiveTab] = useState<"cv" | "coverLetter" | "coldEmail">("cv");
+  const [editorTab, setEditorTab] = useState<"resume" | "coverLetter" | "coldEmail">("resume");
 
   // Re-evaluation loader
   const [evaluatingScore, setEvaluatingScore] = useState(false);
@@ -129,6 +131,7 @@ export default function AtsGeneratePage() {
       const data = await res.json();
       setTailoredResume(data.tailoredResume as TailoredResume);
       setCoverLetterText(data.coverLetter || "");
+      setColdEmailText(data.coldEmail || "");
       setMatchScore(data.matchScore || 0);
       setMissingKeywords(data.missingKeywords || []);
       setStep("edit");
@@ -525,7 +528,17 @@ export default function AtsGeneratePage() {
                           : "text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-300"
                       }`}
                     >
-                      ✉️ Edit Cover Letter Text
+                      ✉️ Edit Cover Letter
+                    </button>
+                    <button
+                      onClick={() => setEditorTab("coldEmail")}
+                      className={`px-4 py-2 rounded-lg font-semibold text-sm transition-all cursor-pointer ${
+                        editorTab === "coldEmail"
+                          ? "bg-emerald-50 text-emerald-600 dark:bg-emerald-900/20 dark:text-emerald-400"
+                          : "text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-300"
+                      }`}
+                    >
+                      📧 Recruiter Outreach Email
                     </button>
                   </div>
 
@@ -746,6 +759,39 @@ export default function AtsGeneratePage() {
                     </div>
                   )}
 
+                  {/* EDITOR PANEL: RECRUITER OUTREACH EMAIL */}
+                  {editorTab === "coldEmail" && (
+                    <div className="flex flex-col gap-4">
+                      <div className="flex items-center justify-between">
+                        <h3 className="text-lg font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-2">
+                          <span>📧 Ready-to-Send Recruiter Email</span>
+                        </h3>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (!coldEmailText) return;
+                            navigator.clipboard.writeText(coldEmailText);
+                            setCopiedEmail(true);
+                            setTimeout(() => setCopiedEmail(false), 2500);
+                          }}
+                          className="px-3.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs cursor-pointer transition-all shadow-sm flex items-center gap-1.5"
+                        >
+                          {copiedEmail ? "✓ Copied to Clipboard!" : "📋 Copy Outreach Email"}
+                        </button>
+                      </div>
+                      <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                        Copy-paste this message directly into Gmail, Outlook, or LinkedIn message to recruiters. Today&apos;s date and target role details are automatically formatted.
+                      </p>
+                      <textarea
+                        rows={16}
+                        value={coldEmailText}
+                        onChange={(e) => setColdEmailText(e.target.value)}
+                        className="p-4 rounded-xl border border-emerald-300 dark:border-emerald-800/60 bg-emerald-50/20 dark:bg-emerald-950/20 text-sm leading-relaxed w-full font-mono focus:ring-2 focus:ring-emerald-500 outline-none"
+                        placeholder="Outreach email text..."
+                      />
+                    </div>
+                  )}
+
                   {/* Action Buttons */}
                   <div className="flex flex-col sm:flex-row gap-4 border-t border-zinc-200 dark:border-zinc-800 pt-6 mt-4">
                     <button
@@ -901,6 +947,16 @@ export default function AtsGeneratePage() {
                   >
                     ✉️ Cover Letter
                   </button>
+                  <button
+                    onClick={() => setActiveTab("coldEmail")}
+                    className={`px-4 py-2 rounded-lg font-medium text-sm transition-colors cursor-pointer ${
+                      activeTab === "coldEmail"
+                        ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300"
+                        : "text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
+                    }`}
+                  >
+                    📧 Recruiter Email
+                  </button>
                 </div>
 
                 <div className="flex gap-2 items-center">
@@ -931,16 +987,36 @@ export default function AtsGeneratePage() {
                       📥 Download Letter
                     </a>
                   )}
+                  {activeTab === "coldEmail" && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (!coldEmailText) return;
+                        navigator.clipboard.writeText(coldEmailText);
+                        setCopiedEmail(true);
+                        setTimeout(() => setCopiedEmail(false), 2500);
+                      }}
+                      className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-medium text-sm transition-colors flex items-center gap-1.5 cursor-pointer"
+                    >
+                      {copiedEmail ? "✓ Copied Email!" : "📋 Copy Outreach Email"}
+                    </button>
+                  )}
                 </div>
               </div>
 
-              <div className="w-full h-[650px] border border-zinc-200 dark:border-zinc-800 rounded-lg overflow-hidden bg-zinc-100 dark:bg-zinc-950">
-                <iframe
-                  src={activeTab === "cv" ? result.cvUrl : result.coverLetterUrl}
-                  className="w-full h-full border-none"
-                  title="Document Preview"
-                />
-              </div>
+              {activeTab === "coldEmail" ? (
+                <div className="w-full h-[650px] border border-zinc-200 dark:border-zinc-800 rounded-2xl overflow-y-auto p-6 bg-zinc-950 text-zinc-100 font-mono text-sm leading-relaxed whitespace-pre-wrap">
+                  {coldEmailText || "No outreach email text generated yet."}
+                </div>
+              ) : (
+                <div className="w-full h-[650px] border border-zinc-200 dark:border-zinc-800 rounded-lg overflow-hidden bg-zinc-100 dark:bg-zinc-950">
+                  <iframe
+                    src={activeTab === "cv" ? result.cvUrl : result.coverLetterUrl}
+                    className="w-full h-full border-none"
+                    title="Document Preview"
+                  />
+                </div>
+              )}
             </div>
           </>
         )}

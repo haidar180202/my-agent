@@ -353,7 +353,10 @@ function generateCoverLetterHtml(
     primaryColor = "#047857";
   }
 
-  const formattedText = coverLetterText
+  const currentDateStr = new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
+  const sanitizedText = coverLetterText.replace(/\[(Current Date|Date|Today's Date|Today Date|Date Here)\]/gi, currentDateStr);
+
+  const formattedText = sanitizedText
     .split("\n\n")
     .map((p) => `<p style="margin-bottom: 12px;">${p.replace(/\n/g, "<br/>")}</p>`)
     .join("");
@@ -523,8 +526,14 @@ export async function POST(req: Request) {
         );
       }
 
-      // 2. Construct the Prompt for Gemini with Technical Developer Identity Preservation
-      console.log(`Analyzing JD for role: ${targetRole}`);
+      // 2. Construct the Prompt for Gemini with Technical Developer Identity Preservation & Recruiter Outreach
+      const currentDateString = new Date().toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+      });
+      console.log(`Analyzing JD for role: ${targetRole} (Current Date: ${currentDateString})`);
+
       const prompt = `
 You are an expert Executive ATS Resume & Cover Letter Architect specializing in Technical Engineering & Developer roles.
 I will provide you with a candidate's Master Resume (in JSON) and a Job Description.
@@ -534,7 +543,8 @@ CRITICAL DIRECTIVES FOR TAILORING (MUST OBEY STRICTLY):
 2. NO PURE MANAGEMENT FLUFF: NEVER rewrite technical developer bullets into purely non-technical administrative/management fluff. Even if the target role is a Manager or Lead title, frame the candidate as a "TECHNICAL LEAD / HANDS-ON ENGINEERING MANAGER" who combines deep technical architecture/coding expertise with project leadership.
 3. AUTHENTIC & RELEVANT EXPERIENCE: Maintain the authentic engineering accomplishments from the Master Resume. Highlight relevance to the Job Description by weaving in JD keywords into the technical bullets naturally (e.g. "Architected Next.js/Node.js microservices... while aligning deliverables with agile project timelines").
 4. RETAIN MASTER RESUME SCOPE: Do NOT strip away software engineering tools, frameworks, or technical responsibilities. Every experience item MUST contain concrete technical details alongside leadership metrics.
-5. COVER LETTER: Write a compelling, highly professional 1-page Cover Letter that showcases the candidate as a high-impact Technical Engineer / Technical Lead perfectly suited for the target role.
+5. COVER LETTER: Write a compelling, highly professional 1-page Cover Letter that showcases the candidate as a high-impact Technical Engineer / Technical Lead. IMPORTANT: ALWAYS use the real date "${currentDateString}" instead of any placeholder like [Current Date].
+6. RECRUITER OUTREACH EMAIL: Write a high-converting, professional, ready-to-send Recruiter Outreach Email / LinkedIn message with a clear Subject line and fully formatted body text. Use "${currentDateString}" for any date references.
 
 TARGET ROLE: ${targetRole}
 JOB DESCRIPTION:
@@ -548,7 +558,8 @@ Return ONLY a raw JSON object with the following exact keys:
   "matchScore": <integer between 0 and 100 representing the ATS match score of the tailored resume>,
   "missingKeywords": [<array of 5 to 8 critical technical keywords/skills from the Job Description>],
   "tailoredResume": <tailored resume object maintaining the exact structure and technical depth of the MASTER RESUME JSON>,
-  "coverLetter": "<a tailored cover letter in plain text, using \\n for newlines>"
+  "coverLetter": "<a tailored cover letter in plain text, using \\n for newlines. Replace all date placeholders with ${currentDateString}>",
+  "coldEmail": "<a ready-to-send recruiter email with Subject Line and Body Text, formatted cleanly with \\n for newlines>"
 }
 
 Do NOT wrap the response in markdown blocks (e.g., \`\`\`json). Just the raw JSON string.
@@ -558,6 +569,7 @@ Do NOT wrap the response in markdown blocks (e.g., \`\`\`json). Just the raw JSO
       console.log("Calling Gemini API...");
       let tailoredResumeResult = JSON.parse(masterCvRaw) as TailoredResume;
       let coverLetterTextResult = "";
+      let coldEmailTextResult = "";
       let matchScoreResult = 75;
       let missingKeywordsResult: string[] = [];
 
@@ -578,7 +590,8 @@ Do NOT wrap the response in markdown blocks (e.g., \`\`\`json). Just the raw JSO
 
           const responseObj = JSON.parse(cleanJsonString);
           tailoredResumeResult = responseObj.tailoredResume as TailoredResume;
-          coverLetterTextResult = responseObj.coverLetter || "";
+          coverLetterTextResult = (responseObj.coverLetter || "").replace(/\[(Current Date|Date|Today's Date|Today Date|Date Here)\]/gi, currentDateString);
+          coldEmailTextResult = (responseObj.coldEmail || "").replace(/\[(Current Date|Date|Today's Date|Today Date|Date Here)\]/gi, currentDateString);
           matchScoreResult = responseObj.matchScore || 75;
           missingKeywordsResult = responseObj.missingKeywords || [];
           console.log(
@@ -603,6 +616,7 @@ Do NOT wrap the response in markdown blocks (e.g., \`\`\`json). Just the raw JSO
         success: true,
         tailoredResume: tailoredResumeResult,
         coverLetter: coverLetterTextResult,
+        coldEmail: coldEmailTextResult,
         matchScore: matchScoreResult,
         missingKeywords: missingKeywordsResult,
       });
