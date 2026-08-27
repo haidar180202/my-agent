@@ -68,6 +68,12 @@ interface ChromiumInterface {
   headless: boolean | string;
 }
 
+// Helper to convert Markdown **bold** syntax to HTML <strong> tags
+function formatMarkdownBold(text: string): string {
+  if (!text) return "";
+  return text.replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>");
+}
+
 // HTML Generator Helper (A4 Precision & ATS Executive Design)
 function generateHtml(resumeData: TailoredResume, theme = "classic") {
   let primaryColor = "#0f172a"; // Executive Dark Slate
@@ -263,7 +269,7 @@ function generateHtml(resumeData: TailoredResume, theme = "classic") {
       ${resumeData.summary ? `
       <div class="section-block">
           <div class="section-title">PROFESSIONAL SUMMARY</div>
-          <p class="summary-text">${resumeData.summary}</p>
+          <p class="summary-text">${formatMarkdownBold(resumeData.summary)}</p>
       </div>
       ` : ""}
 
@@ -288,7 +294,7 @@ function generateHtml(resumeData: TailoredResume, theme = "classic") {
                       <span class="job-date">${exp.date || `${exp.startDate || ""} - ${exp.endDate || ""}`}</span>
                   </div>
                   <ul class="bullet-list">
-                      ${(exp.bullets || exp.highlights || []).map((b: string) => `<li>${b}</li>`).join("")}
+                      ${(exp.bullets || exp.highlights || []).map((b: string) => `<li>${formatMarkdownBold(b)}</li>`).join("")}
                   </ul>
               </div>
           `,
@@ -309,7 +315,7 @@ function generateHtml(resumeData: TailoredResume, theme = "classic") {
                       <span class="job-date">${proj.date || ""}</span>
                   </div>
                   <ul class="bullet-list">
-                      ${(proj.bullets || proj.highlights || []).map((b: string) => `<li>${b}</li>`).join("")}
+                      ${(proj.bullets || proj.highlights || []).map((b: string) => `<li>${formatMarkdownBold(b)}</li>`).join("")}
                   </ul>
               </div>
           `,
@@ -358,7 +364,7 @@ function generateCoverLetterHtml(
 
   const formattedText = sanitizedText
     .split("\n\n")
-    .map((p) => `<p style="margin-bottom: 12px;">${p.replace(/\n/g, "<br/>")}</p>`)
+    .map((p) => `<p style="margin-bottom: 12px;">${formatMarkdownBold(p).replace(/\n/g, "<br/>")}</p>`)
     .join("");
 
   const contactItems = [
