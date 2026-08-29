@@ -48,6 +48,7 @@ interface Education {
 interface TailoredResume {
   personalInfo?: PersonalInfo;
   summary?: string;
+  keyHighlights?: string[];
   experience?: Experience[];
   projects?: Project[];
   skills?: string[] | Record<string, string[]>;
@@ -68,10 +69,13 @@ interface ChromiumInterface {
   headless: boolean | string;
 }
 
-// Helper to convert Markdown **bold** syntax to HTML <strong> tags
+// Helper to convert Markdown syntax (**bold**, headers, bullets) to clean native HTML tags
 function formatMarkdownBold(text: string): string {
   if (!text) return "";
-  return text.replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>");
+  return text
+    .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
+    .replace(/#{1,6}\s*(.*)/g, "<strong>$1</strong>")
+    .replace(/^[\*\-]\s+(.*)/gm, "• $1");
 }
 
 // HTML Generator Helper (A4 Precision & ATS Executive Design)
@@ -270,6 +274,15 @@ function generateHtml(resumeData: TailoredResume, theme = "classic") {
       <div class="section-block">
           <div class="section-title">PROFESSIONAL SUMMARY</div>
           <p class="summary-text">${formatMarkdownBold(resumeData.summary)}</p>
+      </div>
+      ` : ""}
+
+      ${(resumeData.keyHighlights || []).length > 0 ? `
+      <div class="section-block">
+          <div class="section-title">KEY PROFESSIONAL HIGHLIGHTS</div>
+          <ul class="bullet-list">
+              ${(resumeData.keyHighlights || []).map((h: string) => `<li>${formatMarkdownBold(h)}</li>`).join("")}
+          </ul>
       </div>
       ` : ""}
 
@@ -541,19 +554,34 @@ export async function POST(req: Request) {
       console.log(`Analyzing JD for role: ${targetRole} (Current Date: ${currentDateString})`);
 
       const prompt = `
-You are an expert Executive ATS Resume & Cover Letter Architect specializing in Technical Engineering & Developer roles.
+You are an expert Executive ATS Resume & Cover Letter Architect specializing in Technical Engineering & Leadership roles.
 I will provide you with a candidate's Master Resume (in JSON) and a Job Description.
 
-CRITICAL DIRECTIVES FOR TAILORING (MUST OBEY STRICTLY):
-1. PRESERVE TECHNICAL DEVELOPER IDENTITY: The candidate is fundamentally a TECHNICAL HANDS-ON ENGINEER / FULLSTACK DEVELOPER. You MUST KEEP their technical engineering identity, coding capabilities, and tech stack (React, Next.js, Node.js, TypeScript, Python, REST APIs, Databases, System Architecture) fully intact.
-2. NO PURE MANAGEMENT FLUFF: NEVER rewrite technical developer bullets into purely non-technical administrative/management fluff. Even if the target role is a Manager or Lead title, frame the candidate as a "TECHNICAL LEAD / HANDS-ON ENGINEERING MANAGER" who combines deep technical architecture/coding expertise with project leadership.
-3. AUTHENTIC & RELEVANT EXPERIENCE: Maintain the authentic engineering accomplishments from the Master Resume. Highlight relevance to the Job Description by weaving in JD keywords into the technical bullets naturally (e.g. "Architected Next.js/Node.js microservices... while aligning deliverables with agile project timelines").
-4. RETAIN MASTER RESUME SCOPE: Do NOT strip away software engineering tools, frameworks, or technical responsibilities. Every experience item MUST contain concrete technical details alongside leadership metrics.
-5. COVER LETTER: Write a compelling, highly professional 1-page Cover Letter that showcases the candidate as a high-impact Technical Engineer / Technical Lead. IMPORTANT: ALWAYS use the real date "${currentDateString}" instead of any placeholder like [Current Date].
-6. RECRUITER OUTREACH EMAIL: Write a high-converting, professional, ready-to-send Recruiter Outreach Email / LinkedIn message with a clear Subject line and fully formatted body text. Use "${currentDateString}" for any date references.
-7. YEARS OF EXPERIENCE CALIBRATION (STRICT RULE):
-   - For TECHNICAL / DEVELOPER / ENGINEERING roles (e.g. Fullstack Developer, Frontend/Backend Developer, Software Engineer, AI Integrations): State approximately 5 YEARS (~5 years) of technical software development & engineering experience (reflecting candidate's timeline from 2021 to present).
-   - For NON-TECHNICAL / MANAGEMENT roles (e.g. Project Manager, Product Manager): State a conservative minimum realistic figure (1–2 years of technical project coordination & agile delivery leadership). NEVER exaggerate pure management years.
+GOLDEN RULES FOR DOCUMENT CUSTOMIZATION (MUST OBEY STRICTLY):
+
+1. FIRST-PERSON PERSPECTIVE (PERSPEKTIF ORANG PERTAMA):
+   - ALWAYS write the Executive Summary, Cover Letter, and Recruiter Email in the FIRST PERSON ("I", "my", "me", "myself").
+   - NEVER use third-person pronouns ("he", "him", "his") to describe the candidate in summary, cover letter, or outreach.
+
+2. OFFICIAL JOB TITLE INTEGRITY (INTEGRITAS JUDUL PEKERJAAN ASLI):
+   - ALWAYS retain the authentic official job titles from employment history. DO NOT invent or inflate past job titles in the work history (e.g. keep "Frontend Developer" at IFG, "Application Development Associate — Lead Internal MII Team" at PT Bukit Asam Tbk, "Fullstack Developer" at PT Pupuk Sriwidjaja).
+   - Match relevance to target roles (e.g., IT Project Manager, Lead, or Manager) strictly through descriptive bullet points (sprint management, team coordination, task allocation, stakeholder reporting) WITHOUT altering official past job titles!
+
+3. YEARS OF EXPERIENCE TRIAGE (TAKTIK DURASI PENGALAMAN):
+   - For Technical / Developer roles (Fullstack, Frontend, Software Engineer, AI): Claim approximately 5 years (~5 years) of software engineering experience (reflecting candidate's timeline from 2021 to present).
+   - For Moderate Management roles (asking for 3-4 years IT PM): Pin the highlighted experience claim right to the requested minimum (e.g. "3-4 years of technical delivery & agile project coordination") to remain 100% credible.
+   - For High-Requirement roles (asking for 7+ years, e.g. Data & AI Manager): Count and connect back to university engineering inception (December 2019, programming C++/Arduino/Robotics power systems) as the start of the systems engineering track.
+
+4. HYBRID LAYOUT & KEY PROFESSIONAL HIGHLIGHTS:
+   - Provide a "keyHighlights" array (3 to 4 items) positioned at the top of the resume using bold bracket mapping format:
+     Format: "**[Target Requirement ➔ Candidate Qualification]**: Detailed description."
+   - Ensure date representations use clean, high-contrast plain text without dark background boxes for 100% ATS OCR scanner readability.
+
+5. CLEAN CODE & NO RAW MARKDOWN:
+   - Do NOT leave raw, unparsed markdown symbols in template fields. Write clean text and convert all bolding into proper standard formatting.
+
+6. RECRUITER OUTREACH EMAIL:
+   - Write a high-converting, professional, ready-to-send Recruiter Outreach Email / LinkedIn message with a clear Subject line and fully formatted body text in FIRST PERSON ("I", "my"). Use real date "${currentDateString}".
 
 TARGET ROLE: ${targetRole}
 JOB DESCRIPTION:
@@ -566,9 +594,9 @@ Return ONLY a raw JSON object with the following exact keys:
 {
   "matchScore": <integer between 0 and 100 representing the ATS match score of the tailored resume>,
   "missingKeywords": [<array of 5 to 8 critical technical keywords/skills from the Job Description>],
-  "tailoredResume": <tailored resume object maintaining the exact structure and technical depth of the MASTER RESUME JSON>,
-  "coverLetter": "<a tailored cover letter in plain text, using \\n for newlines. Replace all date placeholders with ${currentDateString}>",
-  "coldEmail": "<a ready-to-send recruiter email with Subject Line and Body Text, formatted cleanly with \\n for newlines>"
+  "tailoredResume": <tailored resume object maintaining the exact structure, official job titles, and technical depth of the MASTER RESUME JSON, including optional keyHighlights array using [Requirement ➔ Qualification] format>,
+  "coverLetter": "<a tailored cover letter in first person ('I', 'my'), plain text with \\n for newlines. Real date: ${currentDateString}>",
+  "coldEmail": "<a ready-to-send recruiter email with Subject Line and Body Text in first person ('I', 'my'), formatted cleanly with \\n for newlines>"
 }
 
 Do NOT wrap the response in markdown blocks (e.g., \`\`\`json). Just the raw JSON string.
