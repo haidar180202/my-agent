@@ -583,6 +583,11 @@ GOLDEN RULES FOR DOCUMENT CUSTOMIZATION (MUST OBEY STRICTLY):
 6. RECRUITER OUTREACH EMAIL:
    - Write a high-converting, professional, ready-to-send Recruiter Outreach Email / LinkedIn message with a clear Subject line and fully formatted body text in FIRST PERSON ("I", "my"). Use real date "${currentDateString}".
 
+7. MISALIGNMENT DETECTION & TAILORING PLAN:
+   - Evaluate if the Target Role / Job Description requires completely unrelated core domain experience that the candidate lacks (e.g. Senior iOS Developer, Data Scientist, Biomedical Engineer vs candidate's Web Fullstack / Systems background).
+   - If there is a major domain misalignment (match score < 60% or missing core prerequisite domain), set "isMisaligned": true, provide "misalignmentReason" explaining the gap, and formulate a polite "clarificationQuestion" for the candidate.
+   - Always include a "tailoringPlan" object outlining: "coreStrategy", "yearsOfExperienceClaim", and "keyHighlightsStrategy".
+
 TARGET ROLE: ${targetRole}
 JOB DESCRIPTION:
 ${jobDescription}
@@ -593,6 +598,14 @@ ${masterCvRaw}
 Return ONLY a raw JSON object with the following exact keys:
 {
   "matchScore": <integer between 0 and 100 representing the ATS match score of the tailored resume>,
+  "isMisaligned": <boolean, true if major domain misalignment is detected>,
+  "misalignmentReason": "<explanation of gap if misaligned, else empty string>",
+  "clarificationQuestion": "<confirmation/clarification question for the candidate if misaligned, else empty string>",
+  "tailoringPlan": {
+    "coreStrategy": "<1-2 sentence summary of tailoring strategy>",
+    "yearsOfExperienceClaim": "<exact calibrated years of experience claimed>",
+    "keyHighlightsStrategy": "<summary of bracketed requirement-to-qualification mapping>"
+  },
   "missingKeywords": [<array of 5 to 8 critical technical keywords/skills from the Job Description>],
   "tailoredResume": <tailored resume object maintaining the exact structure, official job titles, and technical depth of the MASTER RESUME JSON, including optional keyHighlights array using [Requirement ➔ Qualification] format>,
   "coverLetter": "<a tailored cover letter in first person ('I', 'my'), plain text with \\n for newlines. Real date: ${currentDateString}>",
@@ -609,6 +622,15 @@ Do NOT wrap the response in markdown blocks (e.g., \`\`\`json). Just the raw JSO
       let coldEmailTextResult = "";
       let matchScoreResult = 75;
       let missingKeywordsResult: string[] = [];
+
+      let isMisalignedResult = false;
+      let misalignmentReasonResult = "";
+      let clarificationQuestionResult = "";
+      let tailoringPlanResult = {
+        coreStrategy: "",
+        yearsOfExperienceClaim: "",
+        keyHighlightsStrategy: "",
+      };
 
       if (process.env.GEMINI_API_KEY) {
         try {
@@ -631,6 +653,15 @@ Do NOT wrap the response in markdown blocks (e.g., \`\`\`json). Just the raw JSO
           coldEmailTextResult = (responseObj.coldEmail || "").replace(/\[(Current Date|Date|Today's Date|Today Date|Date Here)\]/gi, currentDateString);
           matchScoreResult = responseObj.matchScore || 75;
           missingKeywordsResult = responseObj.missingKeywords || [];
+          isMisalignedResult = Boolean(responseObj.isMisaligned);
+          misalignmentReasonResult = responseObj.misalignmentReason || "";
+          clarificationQuestionResult = responseObj.clarificationQuestion || "";
+          tailoringPlanResult = responseObj.tailoringPlan || {
+            coreStrategy: "",
+            yearsOfExperienceClaim: "",
+            keyHighlightsStrategy: "",
+          };
+
           console.log(
             "Successfully tailored resume and calculated match score using Gemini!",
           );
@@ -656,6 +687,10 @@ Do NOT wrap the response in markdown blocks (e.g., \`\`\`json). Just the raw JSO
         coldEmail: coldEmailTextResult,
         matchScore: matchScoreResult,
         missingKeywords: missingKeywordsResult,
+        isMisaligned: isMisalignedResult,
+        misalignmentReason: misalignmentReasonResult,
+        clarificationQuestion: clarificationQuestionResult,
+        tailoringPlan: tailoringPlanResult,
       });
     }
 

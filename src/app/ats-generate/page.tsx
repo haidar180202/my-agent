@@ -64,6 +64,17 @@ export default function AtsGeneratePage() {
   const [missingKeywords, setMissingKeywords] = useState<string[]>([]);
   const [copiedEmail, setCopiedEmail] = useState(false);
 
+  // Misalignment & Tailoring Plan State
+  const [isMisaligned, setIsMisaligned] = useState(false);
+  const [misalignmentReason, setMisalignmentReason] = useState("");
+  const [clarificationQuestion, setClarificationQuestion] = useState("");
+  const [tailoringPlan, setTailoringPlan] = useState<{
+    coreStrategy?: string;
+    yearsOfExperienceClaim?: string;
+    keyHighlightsStrategy?: string;
+  } | null>(null);
+  const [showMisalignmentModal, setShowMisalignmentModal] = useState(false);
+
   // Resulting PDF URLs
   const [result, setResult] = useState<{ cvUrl?: string; coverLetterUrl?: string } | null>(null);
   
@@ -134,6 +145,15 @@ export default function AtsGeneratePage() {
       setColdEmailText(data.coldEmail || "");
       setMatchScore(data.matchScore || 0);
       setMissingKeywords(data.missingKeywords || []);
+      setIsMisaligned(Boolean(data.isMisaligned));
+      setMisalignmentReason(data.misalignmentReason || "");
+      setClarificationQuestion(data.clarificationQuestion || "");
+      setTailoringPlan(data.tailoringPlan || null);
+
+      if (data.isMisaligned) {
+        setShowMisalignmentModal(true);
+      }
+
       setStep("edit");
     } catch (err) {
       console.error(err);
@@ -500,6 +520,39 @@ export default function AtsGeneratePage() {
                 AI has tailored your resume and cover letter. Tweak the details below before compiling the final PDFs.
               </p>
             </header>
+
+            {/* Tailoring Strategy & Plan Summary Banner */}
+            {tailoringPlan && (
+              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/40 dark:to-indigo-950/40 p-6 rounded-2xl border border-blue-200/80 dark:border-blue-900/60 flex flex-col gap-3 shadow-sm">
+                <div className="flex items-center justify-between">
+                  <h3 className="font-bold text-sm text-blue-900 dark:text-blue-200 flex items-center gap-2">
+                    <span>📋 CV Tailoring Plan &amp; Strategy Preview</span>
+                    {isMisaligned && (
+                      <span className="px-2.5 py-0.5 rounded-full bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300 font-bold text-[11px]">
+                        ⚠️ Gap Strategy Applied
+                      </span>
+                    )}
+                  </h3>
+                  {tailoringPlan.yearsOfExperienceClaim && (
+                    <span className="px-3 py-1 rounded-full bg-blue-100 dark:bg-blue-900/60 text-blue-800 dark:text-blue-300 font-semibold text-xs">
+                      Claimed Experience: {tailoringPlan.yearsOfExperienceClaim}
+                    </span>
+                  )}
+                </div>
+                
+                {tailoringPlan.coreStrategy && (
+                  <p className="text-xs text-blue-800/90 dark:text-blue-300/90 leading-relaxed font-medium">
+                    <strong className="text-blue-950 dark:text-blue-100">Core Framing Strategy:</strong> {tailoringPlan.coreStrategy}
+                  </p>
+                )}
+
+                {tailoringPlan.keyHighlightsStrategy && (
+                  <p className="text-xs text-blue-800/90 dark:text-blue-300/90 leading-relaxed">
+                    <strong className="text-blue-950 dark:text-blue-100">Key Highlights Mapping:</strong> {tailoringPlan.keyHighlightsStrategy}
+                  </p>
+                )}
+              </div>
+            )}
 
             {/* Grid Layout: Editors on Left (2/3), Score & Checklist on Right (1/3) */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
@@ -1052,6 +1105,54 @@ export default function AtsGeneratePage() {
                 className="px-4 py-2 text-sm font-semibold rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white disabled:opacity-50 cursor-pointer"
               >
                 Save to History
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Misalignment Confirmation Modal */}
+      {showMisalignmentModal && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50 backdrop-blur-sm animate-fade-in">
+          <div className="bg-white dark:bg-zinc-900 p-7 rounded-3xl max-w-lg w-full border border-amber-300 dark:border-amber-800/60 shadow-2xl flex flex-col gap-5">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-2xl bg-amber-100 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 flex items-center justify-center text-xl font-bold">
+                ⚠️
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-zinc-900 dark:text-zinc-100">Role Misalignment Detected</h3>
+                <p className="text-xs text-zinc-500">Noticeable background gap between job requirements and Master CV</p>
+              </div>
+            </div>
+
+            {misalignmentReason && (
+              <div className="p-4 rounded-2xl bg-amber-50/60 dark:bg-amber-950/30 border border-amber-200/80 dark:border-amber-900/40 text-xs text-amber-900 dark:text-amber-200 leading-relaxed">
+                <strong>Gap Analysis:</strong> {misalignmentReason}
+              </div>
+            )}
+
+            {clarificationQuestion && (
+              <div className="p-4 rounded-2xl bg-blue-50/60 dark:bg-blue-950/30 border border-blue-200/80 dark:border-blue-900/40 text-xs text-blue-900 dark:text-blue-200 leading-relaxed">
+                <strong>Confirmation Question:</strong> {clarificationQuestion}
+              </div>
+            )}
+
+            <div className="flex flex-col sm:flex-row justify-end gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowMisalignmentModal(false);
+                  setStep("input");
+                }}
+                className="px-4 py-2.5 text-xs font-semibold rounded-xl border border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 cursor-pointer"
+              >
+                &larr; Revise Input Role / JD
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowMisalignmentModal(false)}
+                className="px-5 py-2.5 text-xs font-bold rounded-xl bg-amber-600 hover:bg-amber-700 text-white cursor-pointer shadow-sm"
+              >
+                Proceed with Strategy &rarr;
               </button>
             </div>
           </div>
