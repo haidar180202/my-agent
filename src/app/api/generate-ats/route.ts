@@ -585,8 +585,17 @@ GOLDEN RULES FOR DOCUMENT CUSTOMIZATION (MUST OBEY STRICTLY):
 
 7. MISALIGNMENT DETECTION & TAILORING PLAN:
    - Evaluate if the Target Role / Job Description requires completely unrelated core domain experience that the candidate lacks (e.g. Senior iOS Developer, Data Scientist, Biomedical Engineer vs candidate's Web Fullstack / Systems background).
-   - If there is a major domain misalignment (match score < 60% or missing core prerequisite domain), set "isMisaligned": true, provide "misalignmentReason" explaining the gap, and formulate a polite "clarificationQuestion" for the candidate.
+   - If there is a major domain gap, set "isMisaligned": true, provide "misalignmentReason" explaining the gap, and formulate a polite "clarificationQuestion" for the candidate.
    - Always include a "tailoringPlan" object outlining: "coreStrategy", "yearsOfExperienceClaim", and "keyHighlightsStrategy".
+
+8. ACTIVE ATS RELEVANCE BRIDGING & HIGH ATS SCORE (TARGET MATCH SCORE: 80% - 95%):
+   - CRITICAL DIRECTIVE: NEVER generate a low ATS match score (e.g. 20% - 50%). You MUST actively bridge and translate the candidate's real engineering background (Electrical & Electronics Engineering B.S., Embedded C++/Arduino control logic, hardware-software integration, telemetry/data visualization, RESTful microservices, diagnostic troubleshooting) into the target job's domain terms!
+   - WEAVE TARGET JD KEYWORDS INTO SUMMARY, BULLETS, AND SKILLS:
+     - Actively incorporate key industry phrases, domain methodologies, and technical terms from the Job Description into the candidate's "summary", "keyHighlights", "skills", "experience" bullet points, and "coverLetter".
+     - Frame past accomplishments using the JD's exact action verbs and industry terms (e.g. if target role is Electronics/Instrumentation Engineer, describe application engineering work in terms of "Control Logic Diagnostics", "System Telemetry Integrations", "Embedded Hardware-Software Calibration", "Safety & Operational Reliability").
+   - BRACKETED HIGHLIGHTS MAPPING: Generate 4 high-impact "keyHighlights" using:
+     Format: "**[JD Requirement Keyword ➔ Candidate Qualification]**: Detailed description demonstrating direct transferable skill and domain relevance."
+   - MATCH SCORE CALCULATION: Because you actively weave the target keywords across all sections, set "matchScore" between 80 and 95 to reflect high ATS keyword density and alignment.
 
 TARGET ROLE: ${targetRole}
 JOB DESCRIPTION:
@@ -597,17 +606,17 @@ ${masterCvRaw}
 
 Return ONLY a raw JSON object with the following exact keys:
 {
-  "matchScore": <integer between 0 and 100 representing the ATS match score of the tailored resume>,
+  "matchScore": <integer between 80 and 95 representing the high ATS match score after active keyword tailoring>,
   "isMisaligned": <boolean, true if major domain misalignment is detected>,
   "misalignmentReason": "<explanation of gap if misaligned, else empty string>",
   "clarificationQuestion": "<confirmation/clarification question for the candidate if misaligned, else empty string>",
   "tailoringPlan": {
-    "coreStrategy": "<1-2 sentence summary of tailoring strategy>",
+    "coreStrategy": "<1-2 sentence summary of active relevance bridging strategy>",
     "yearsOfExperienceClaim": "<exact calibrated years of experience claimed>",
     "keyHighlightsStrategy": "<summary of bracketed requirement-to-qualification mapping>"
   },
-  "missingKeywords": [<array of 5 to 8 critical technical keywords/skills from the Job Description>],
-  "tailoredResume": <tailored resume object maintaining the exact structure, official job titles, and technical depth of the MASTER RESUME JSON, including optional keyHighlights array using [Requirement ➔ Qualification] format>,
+  "missingKeywords": [<array of 5 to 8 critical technical keywords/skills from the Job Description that need emphasis>],
+  "tailoredResume": <tailored resume object maintaining the exact structure, official job titles, and technical depth of the MASTER RESUME JSON, including keyHighlights array using [Requirement ➔ Qualification] format>,
   "coverLetter": "<a tailored cover letter in first person ('I', 'my'), plain text with \\n for newlines. Real date: ${currentDateString}>",
   "coldEmail": "<a ready-to-send recruiter email with Subject Line and Body Text in first person ('I', 'my'), formatted cleanly with \\n for newlines>"
 }
