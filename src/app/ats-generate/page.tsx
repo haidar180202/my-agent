@@ -75,12 +75,19 @@ export default function AtsGeneratePage() {
   } | null>(null);
   const [showMisalignmentModal, setShowMisalignmentModal] = useState(false);
 
+  // Screening Question Assistant State
+  const [screeningQuestion, setScreeningQuestion] = useState("");
+  const [screeningAnswer, setScreeningAnswer] = useState("");
+  const [screeningKeyPoints, setScreeningKeyPoints] = useState<string[]>([]);
+  const [loadingAnswer, setLoadingAnswer] = useState(false);
+  const [copiedAnswer, setCopiedAnswer] = useState(false);
+
   // Resulting PDF URLs
   const [result, setResult] = useState<{ cvUrl?: string; coverLetterUrl?: string } | null>(null);
   
   // Tab states
-  const [activeTab, setActiveTab] = useState<"cv" | "coverLetter" | "coldEmail">("cv");
-  const [editorTab, setEditorTab] = useState<"resume" | "coverLetter" | "coldEmail">("resume");
+  const [activeTab, setActiveTab] = useState<"cv" | "coverLetter" | "coldEmail" | "screening">("cv");
+  const [editorTab, setEditorTab] = useState<"resume" | "coverLetter" | "coldEmail" | "screening">("resume");
 
   // Re-evaluation loader
   const [evaluatingScore, setEvaluatingScore] = useState(false);
@@ -228,6 +235,45 @@ export default function AtsGeneratePage() {
       setError("Re-evaluation failed: " + errorVal.message);
     } finally {
       setEvaluatingScore(false);
+    }
+  };
+
+  // Answer custom job portal screening question
+  const handleAnswerQuestion = async (customQ?: string) => {
+    const qToAnswer = customQ || screeningQuestion;
+    if (!qToAnswer.trim()) return;
+
+    if (customQ) setScreeningQuestion(customQ);
+    setLoadingAnswer(true);
+    setError("");
+
+    try {
+      const res = await fetch("/api/generate-ats", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "answer-screening-question",
+          question: qToAnswer,
+          targetRole,
+          jobDescription,
+          password,
+        }),
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.error || "Failed to generate answer");
+      }
+
+      const data = await res.json();
+      setScreeningAnswer(data.answer || "");
+      setScreeningKeyPoints(data.keyPoints || []);
+    } catch (err) {
+      console.error(err);
+      const errorVal = err as Error;
+      setError(errorVal.message);
+    } finally {
+      setLoadingAnswer(false);
     }
   };
 
@@ -593,6 +639,16 @@ export default function AtsGeneratePage() {
                     >
                       📧 Recruiter Outreach Email
                     </button>
+                    <button
+                      onClick={() => setEditorTab("screening")}
+                      className={`px-4 py-2 rounded-lg font-semibold text-sm transition-all cursor-pointer ${
+                        editorTab === "screening"
+                          ? "bg-purple-50 text-purple-600 dark:bg-purple-900/20 dark:text-purple-400"
+                          : "text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-300"
+                      }`}
+                    >
+                      🤖 Screening Questions
+                    </button>
                   </div>
 
                   {/* EDITOR PANEL: RESUME */}
@@ -845,6 +901,101 @@ export default function AtsGeneratePage() {
                     </div>
                   )}
 
+                  {/* EDITOR PANEL: SCREENING QUESTIONS ASSISTANT */}
+                  {editorTab === "screening" && (
+                    <div className="flex flex-col gap-6">
+                      <div className="flex flex-col gap-1">
+                        <h3 className="text-lg font-bold text-purple-600 dark:text-purple-400 flex items-center gap-2">
+                          <span>🤖 AI Application Screening Question Answerer</span>
+                        </h3>
+                        <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                          Paste any custom application question from job portals (LinkedIn, Jobstreet, Lever, Greenhouse). AI will formulate an authentic answer framing you as a <strong>rapid technical adapter</strong> based on your Master CV.
+                        </p>
+                      </div>
+
+                      {/* Quick Presets */}
+                      <div className="flex flex-wrap gap-2">
+                        <button
+                          type="button"
+                          onClick={() => handleAnswerQuestion("Why are you a good fit for this position?")}
+                          className="px-3 py-1.5 rounded-lg border border-purple-200 dark:border-purple-900/50 bg-purple-50/50 dark:bg-purple-950/30 text-purple-700 dark:text-purple-300 text-xs font-medium hover:bg-purple-100 cursor-pointer"
+                        >
+                          💡 Why fit for role?
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleAnswerQuestion("Describe a situation where you had to quickly adapt to a new technical tool, domain, or framework?")}
+                          className="px-3 py-1.5 rounded-lg border border-purple-200 dark:border-purple-900/50 bg-purple-50/50 dark:bg-purple-950/30 text-purple-700 dark:text-purple-300 text-xs font-medium hover:bg-purple-100 cursor-pointer"
+                        >
+                          ⚡ Rapid adaptation example?
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleAnswerQuestion("How do you handle technical challenges or system outages under pressure?")}
+                          className="px-3 py-1.5 rounded-lg border border-purple-200 dark:border-purple-900/50 bg-purple-50/50 dark:bg-purple-950/30 text-purple-700 dark:text-purple-300 text-xs font-medium hover:bg-purple-100 cursor-pointer"
+                        >
+                          🛠️ Technical challenge example?
+                        </button>
+                      </div>
+
+                      {/* Custom Question Textarea */}
+                      <div className="flex flex-col gap-2">
+                        <label className="text-xs font-semibold text-zinc-500">Custom Screening Question</label>
+                        <div className="flex gap-2">
+                          <textarea
+                            rows={3}
+                            value={screeningQuestion}
+                            onChange={(e) => setScreeningQuestion(e.target.value)}
+                            className="p-3 rounded-xl border border-purple-200 dark:border-purple-900/60 bg-transparent text-sm leading-relaxed w-full focus:ring-2 focus:ring-purple-500 outline-none"
+                            placeholder="Paste screening question here (e.g., 'What experience do you have with PLC/DCS or fast system integration?')..."
+                          />
+                          <button
+                            type="button"
+                            disabled={loadingAnswer || !screeningQuestion.trim()}
+                            onClick={() => handleAnswerQuestion()}
+                            className="px-5 py-2 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs transition-all disabled:opacity-50 cursor-pointer flex-shrink-0 flex items-center justify-center gap-1.5"
+                          >
+                            {loadingAnswer ? "Thinking..." : "Generate Answer 💡"}
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Generated Answer Display */}
+                      {screeningAnswer && (
+                        <div className="flex flex-col gap-3 p-5 rounded-2xl bg-purple-50/30 dark:bg-purple-950/20 border border-purple-200 dark:border-purple-900/50">
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs font-bold text-purple-900 dark:text-purple-300">Generated Response</span>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                navigator.clipboard.writeText(screeningAnswer);
+                                setCopiedAnswer(true);
+                                setTimeout(() => setCopiedAnswer(false), 2500);
+                              }}
+                              className="px-3.5 py-1.5 rounded-lg bg-purple-600 hover:bg-purple-700 text-white font-extrabold text-xs cursor-pointer shadow-sm flex items-center gap-1.5"
+                            >
+                              {copiedAnswer ? "✓ Copied Answer!" : "📋 Copy Answer"}
+                            </button>
+                          </div>
+
+                          {screeningKeyPoints.length > 0 && (
+                            <div className="flex flex-wrap gap-1.5">
+                              {screeningKeyPoints.map((kp, idx) => (
+                                <span key={idx} className="px-2.5 py-0.5 rounded-full bg-purple-100 dark:bg-purple-900/50 text-purple-800 dark:text-purple-300 text-[11px] font-semibold">
+                                  ✓ {kp}
+                                </span>
+                              ))}
+                            </div>
+                          )}
+
+                          <pre className="p-4 rounded-xl bg-zinc-950 text-zinc-100 font-mono text-xs leading-relaxed whitespace-pre-wrap border border-zinc-800">
+                            {screeningAnswer}
+                          </pre>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
                   {/* Action Buttons */}
                   <div className="flex flex-col sm:flex-row gap-4 border-t border-zinc-200 dark:border-zinc-800 pt-6 mt-4">
                     <button
@@ -1010,6 +1161,16 @@ export default function AtsGeneratePage() {
                   >
                     📧 Recruiter Email
                   </button>
+                  <button
+                    onClick={() => setActiveTab("screening")}
+                    className={`px-4 py-2 rounded-lg font-medium text-sm transition-colors cursor-pointer ${
+                      activeTab === "screening"
+                        ? "bg-purple-100 text-purple-800 dark:bg-purple-950/40 dark:text-purple-300"
+                        : "text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
+                    }`}
+                  >
+                    🤖 Screening Questions
+                  </button>
                 </div>
 
                 <div className="flex gap-2 items-center">
@@ -1054,10 +1215,105 @@ export default function AtsGeneratePage() {
                       {copiedEmail ? "✓ Copied Email!" : "📋 Copy Outreach Email"}
                     </button>
                   )}
+                  {activeTab === "screening" && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (!screeningAnswer) return;
+                        navigator.clipboard.writeText(screeningAnswer);
+                        setCopiedAnswer(true);
+                        setTimeout(() => setCopiedAnswer(false), 2500);
+                      }}
+                      className="px-4 py-2 rounded-lg bg-purple-600 hover:bg-purple-700 text-white font-medium text-sm transition-colors flex items-center gap-1.5 cursor-pointer"
+                    >
+                      {copiedAnswer ? "✓ Copied Answer!" : "📋 Copy Answer"}
+                    </button>
+                  )}
                 </div>
               </div>
 
-              {activeTab === "coldEmail" ? (
+              {activeTab === "screening" ? (
+                <div className="w-full h-[650px] border border-purple-200 dark:border-purple-900/50 rounded-2xl overflow-y-auto p-6 bg-zinc-950 text-zinc-100 font-mono text-sm leading-relaxed">
+                  <div className="flex flex-col gap-4">
+                    <div className="flex items-center justify-between pb-3 border-b border-zinc-800">
+                      <span className="text-xs font-bold text-purple-400">🤖 AI Application Screening Question Answerer</span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (!screeningAnswer) return;
+                          navigator.clipboard.writeText(screeningAnswer);
+                          setCopiedAnswer(true);
+                          setTimeout(() => setCopiedAnswer(false), 2500);
+                        }}
+                        className="px-3.5 py-1.5 rounded-lg bg-purple-600 hover:bg-purple-700 text-white font-extrabold text-xs cursor-pointer shadow-sm flex items-center gap-1.5"
+                      >
+                        {copiedAnswer ? "✓ Copied Answer!" : "📋 Copy Answer"}
+                      </button>
+                    </div>
+
+                    <div className="flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        onClick={() => handleAnswerQuestion("Why are you a good fit for this position?")}
+                        className="px-3 py-1.5 rounded-lg border border-purple-900/50 bg-purple-950/40 text-purple-300 text-xs font-medium hover:bg-purple-900/60 cursor-pointer"
+                      >
+                        💡 Why fit for role?
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleAnswerQuestion("Describe a situation where you had to quickly adapt to a new technical tool, domain, or framework?")}
+                        className="px-3 py-1.5 rounded-lg border border-purple-900/50 bg-purple-950/40 text-purple-300 text-xs font-medium hover:bg-purple-900/60 cursor-pointer"
+                      >
+                        ⚡ Rapid adaptation example?
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleAnswerQuestion("How do you handle technical challenges or system outages under pressure?")}
+                        className="px-3 py-1.5 rounded-lg border border-purple-900/50 bg-purple-950/40 text-purple-300 text-xs font-medium hover:bg-purple-900/60 cursor-pointer"
+                      >
+                        🛠️ Technical challenge example?
+                      </button>
+                    </div>
+
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={screeningQuestion}
+                        onChange={(e) => setScreeningQuestion(e.target.value)}
+                        className="p-3 rounded-xl border border-zinc-800 bg-zinc-900 text-xs text-white outline-none focus:ring-2 focus:ring-purple-500 w-full"
+                        placeholder="Paste screening question here (e.g. 'What experience do you have with PLC/DCS or fast system integration?')..."
+                      />
+                      <button
+                        type="button"
+                        disabled={loadingAnswer || !screeningQuestion.trim()}
+                        onClick={() => handleAnswerQuestion()}
+                        className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs rounded-xl cursor-pointer disabled:opacity-50 flex-shrink-0"
+                      >
+                        {loadingAnswer ? "Thinking..." : "Answer 💡"}
+                      </button>
+                    </div>
+
+                    {screeningAnswer ? (
+                      <div className="flex flex-col gap-3">
+                        {screeningKeyPoints.length > 0 && (
+                          <div className="flex flex-wrap gap-1.5">
+                            {screeningKeyPoints.map((kp, idx) => (
+                              <span key={idx} className="px-2.5 py-0.5 rounded-full bg-purple-900/50 text-purple-300 text-[11px] font-semibold">
+                                ✓ {kp}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                        <pre className="p-4 rounded-xl bg-zinc-900 text-zinc-100 font-mono text-xs leading-relaxed whitespace-pre-wrap border border-zinc-800">
+                          {screeningAnswer}
+                        </pre>
+                      </div>
+                    ) : (
+                      <p className="text-xs text-zinc-500 italic">Paste a screening question above or click a preset button to generate an authentic response framed around your rapid technical adaptability.</p>
+                    )}
+                  </div>
+                </div>
+              ) : activeTab === "coldEmail" ? (
                 <div className="w-full h-[650px] border border-zinc-200 dark:border-zinc-800 rounded-2xl overflow-y-auto p-6 bg-zinc-950 text-zinc-100 font-mono text-sm leading-relaxed whitespace-pre-wrap">
                   {coldEmailText || "No outreach email text generated yet."}
                 </div>

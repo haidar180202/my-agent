@@ -777,6 +777,118 @@ Do NOT wrap the response in markdown blocks (e.g., \`\`\`json). Just the raw JSO
       }
     }
 
+    // Phase 1.8: Answer Application Screening Question
+    if (action === "answer-screening-question") {
+      const { question } = body;
+      if (!question || !targetRole || !jobDescription) {
+        return NextResponse.json(
+          { error: "question, targetRole, and jobDescription are required" },
+          { status: 400 },
+        );
+      }
+
+      // Read and decrypt master CV
+      let dataPath = path.join(process.cwd(), "data", "master_cv.enc");
+      try {
+        await fs.access(dataPath);
+      } catch {
+        dataPath = path.join(
+          process.cwd(),
+          "my-project-some",
+          "my-app",
+          "my-agent",
+          "data",
+          "master_cv.enc",
+        );
+      }
+      const encryptedData = await fs.readFile(dataPath, "utf-8");
+      const parts = encryptedData.split(":");
+      const ivHex = parts.shift();
+      if (!ivHex) throw new Error("Invalid encrypted data format");
+      const iv = Buffer.from(ivHex, "hex");
+      const encryptedText = parts.join(":");
+
+      let masterCvRaw = "";
+      try {
+        const key = crypto.scryptSync(password || "123456", "salt", 32);
+        const decipher = crypto.createDecipheriv("aes-256-cbc", key, iv);
+        let decrypted = decipher.update(encryptedText, "hex", "utf8");
+        decrypted += decipher.final("utf8");
+        masterCvRaw = decrypted;
+      } catch {
+        return NextResponse.json(
+          { error: "Invalid master CV password" },
+          { status: 401 },
+        );
+      }
+
+      const prompt = `
+You are an expert Job Application Coach and Executive Assistant.
+Formulate a highly compelling, professional, authentic screening question answer for a candidate applying to the position of: ${targetRole}.
+
+CRITICAL DIRECTIVES:
+1. FIRST PERSON PERSPECTIVE: ALWAYS write in the first person ("I", "my", "me").
+2. RAPID ADAPTABILITY FRAMING: Emphasize that the candidate is a FAST LEARNER and RAPID TECHNICAL ADAPTER ("orang yang cepat beradaptasi") who quickly masters new tools, frameworks, and domain workflows based on a solid engineering foundation.
+3. GROUNDED IN MASTER RESUME: Reference candidate's real Master CV achievements (Electrical & Electronics Engineering B.S., PT Bukit Asam Tbk, IFG, C++/Arduino, React, Next.js, Node.js, REST APIs).
+4. CONCISE & POLISHED: Keep the answer clear, structured, and ready to paste into job application portals (150 - 250 words).
+
+TARGET ROLE: ${targetRole}
+JOB DESCRIPTION:
+${jobDescription}
+
+SCREENING QUESTION TO ANSWER:
+"${question}"
+
+MASTER RESUME (JSON):
+${masterCvRaw}
+
+Return ONLY a raw JSON object with the following exact keys:
+{
+  "answer": "<the ready-to-copy response text written in first person>",
+  "keyPoints": [<array of 3 short takeaway bullet points>]
+}
+
+Do NOT wrap the response in markdown blocks (e.g., \`\`\`json). Just the raw JSON string.
+`;
+
+      if (process.env.GEMINI_API_KEY) {
+        try {
+          const response = await ai.models.generateContent({
+            model: "gemini-2.5-flash",
+            contents: prompt,
+            config: {
+              temperature: 0.4,
+            },
+          });
+          const aiResponseText = response.text || "{}";
+          const cleanJsonString = aiResponseText
+            .replace(/```json/g, "")
+            .replace(/```/g, "")
+            .trim();
+          const responseObj = JSON.parse(cleanJsonString);
+
+          return NextResponse.json({
+            success: true,
+            question,
+            answer: responseObj.answer || "",
+            keyPoints: responseObj.keyPoints || [],
+          });
+        } catch (aiErr) {
+          console.error("Gemini AI Error:", aiErr);
+          const errorVal = aiErr as Error;
+          return NextResponse.json(
+            { error: "Failed to generate screening answer: " + errorVal.message },
+            { status: 500 },
+          );
+        }
+      } else {
+        return NextResponse.json(
+          { error: "Gemini API key missing" },
+          { status: 500 },
+        );
+      }
+    }
+
     // Phase 2: Compile Final PDF
     if (action === "generate-pdf") {
       if (!tailoredResume || !coverLetterText) {
