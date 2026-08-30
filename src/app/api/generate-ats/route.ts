@@ -596,6 +596,12 @@ GOLDEN RULES FOR DOCUMENT CUSTOMIZATION (MUST OBEY STRICTLY):
      Format: "**[JD Requirement Keyword ➔ Candidate Qualification]**: Detailed description demonstrating direct transferable skill and domain relevance."
    - MATCH SCORE CALCULATION: Because you actively weave the target keywords across all sections, set "matchScore" between 80 and 95 to reflect high ATS keyword density and alignment.
 
+9. NON-DESTRUCTIVE BULLET POINT OPTIMIZATION (STRICT MANDATE):
+   - DO NOT DELETE or wipe out original core technical achievements (e.g. React, Next.js, Node.js, SQLite, NestJS, microservices, architecture) under any work experience entry!
+   - NON-DESTRUCTIVE TAILORING RULE: Keep all original technical achievements intact, and OPTIMIZE them by appending or weaving in domain relevance & keywords naturally.
+   - Example: Instead of replacing a bullet point like "Architected financial web apps using React and TypeScript", OPTIMIZE it to: "Architected financial web apps using React & TypeScript, ensuring type safety, clean code standards, and operational reliability akin to critical control monitoring interfaces."
+   - Every original experience entry MUST preserve its core technical identity while seamlessly drawing domain relevance to the target job description!
+
 TARGET ROLE: ${targetRole}
 JOB DESCRIPTION:
 ${jobDescription}
