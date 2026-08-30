@@ -602,6 +602,11 @@ GOLDEN RULES FOR DOCUMENT CUSTOMIZATION (MUST OBEY STRICTLY):
    - Example: Instead of replacing a bullet point like "Architected financial web apps using React and TypeScript", OPTIMIZE it to: "Architected financial web apps using React & TypeScript, ensuring type safety, clean code standards, and operational reliability akin to critical control monitoring interfaces."
    - Every original experience entry MUST preserve its core technical identity while seamlessly drawing domain relevance to the target job description!
 
+10. UNIVERSAL COVER LETTER & RECRUITMENT TEAM SALUTATIONS:
+    - NO PLACEHOLDERS: NEVER output bracketed placeholders like "[Company Name]", "[Hiring Manager]", "[Recipient Name]", or "[Company]" in the Cover Letter or Recruiter Email.
+    - SALUTATION FALLBACK: If a specific recruiter or hiring manager name is NOT explicitly specified in the Job Description, ALWAYS start the cover letter with: "Dear Recruitment Team," or "Dear Hiring Manager,".
+    - UNIVERSAL COMPANY FALLBACK: If a company name is NOT specified in the Job Description, frame the Cover Letter universally (e.g., "I am writing to express my enthusiastic interest in the ${targetRole} position at your esteemed organization...").
+
 TARGET ROLE: ${targetRole}
 JOB DESCRIPTION:
 ${jobDescription}
@@ -622,8 +627,8 @@ Return ONLY a raw JSON object with the following exact keys:
   },
   "missingKeywords": [<array of 5 to 8 critical technical keywords/skills from the Job Description that need emphasis>],
   "tailoredResume": <tailored resume object maintaining the exact structure, official job titles, and technical depth of the MASTER RESUME JSON, including keyHighlights array using [Requirement ➔ Qualification] format>,
-  "coverLetter": "<a tailored cover letter in first person ('I', 'my'), plain text with \\n for newlines. Real date: ${currentDateString}>",
-  "coldEmail": "<a ready-to-send recruiter email with Subject Line and Body Text in first person ('I', 'my'), formatted cleanly with \\n for newlines>"
+  "coverLetter": "<a tailored cover letter in first person ('I', 'my'), starting with 'Dear Recruitment Team,' if no recipient name, plain text with \\n for newlines. Real date: ${currentDateString}>",
+  "coldEmail": "<a ready-to-send recruiter email starting with 'Dear Recruitment Team,' or 'Dear Hiring Manager,' in first person ('I', 'my'), formatted cleanly with \\n for newlines>"
 }
 
 Do NOT wrap the response in markdown blocks (e.g., \`\`\`json). Just the raw JSON string.
@@ -663,8 +668,25 @@ Do NOT wrap the response in markdown blocks (e.g., \`\`\`json). Just the raw JSO
 
           const responseObj = JSON.parse(cleanJsonString);
           tailoredResumeResult = responseObj.tailoredResume as TailoredResume;
-          coverLetterTextResult = (responseObj.coverLetter || "").replace(/\[(Current Date|Date|Today's Date|Today Date|Date Here)\]/gi, currentDateString);
-          coldEmailTextResult = (responseObj.coldEmail || "").replace(/\[(Current Date|Date|Today's Date|Today Date|Date Here)\]/gi, currentDateString);
+          
+          let rawCoverLetter = (responseObj.coverLetter || "")
+            .replace(/\[(Current Date|Date|Today's Date|Today Date|Date Here)\]/gi, currentDateString)
+            .replace(/\[(Hiring Manager|Recipient Name|Recruiter Name|Name)\]/gi, "Hiring Manager")
+            .replace(/\[(Company Name|Company|Organization Name|Organization)\]/gi, "your organization")
+            .replace(/Dear \[.*?\]/gi, "Dear Recruitment Team,");
+          
+          if (!rawCoverLetter.includes("Dear ")) {
+            rawCoverLetter = `Dear Recruitment Team,\n\n${rawCoverLetter}`;
+          }
+
+          const rawColdEmail = (responseObj.coldEmail || "")
+            .replace(/\[(Current Date|Date|Today's Date|Today Date|Date Here)\]/gi, currentDateString)
+            .replace(/\[(Hiring Manager|Recipient Name|Recruiter Name|Name)\]/gi, "Hiring Manager")
+            .replace(/\[(Company Name|Company|Organization Name|Organization)\]/gi, "your organization")
+            .replace(/Dear \[.*?\]/gi, "Dear Recruitment Team,");
+
+          coverLetterTextResult = rawCoverLetter;
+          coldEmailTextResult = rawColdEmail;
           matchScoreResult = responseObj.matchScore || 75;
           missingKeywordsResult = responseObj.missingKeywords || [];
           isMisalignedResult = Boolean(responseObj.isMisaligned);
