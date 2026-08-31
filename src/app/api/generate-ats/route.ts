@@ -607,6 +607,11 @@ GOLDEN RULES FOR DOCUMENT CUSTOMIZATION (MUST OBEY STRICTLY):
     - SALUTATION FALLBACK: If a specific recruiter or hiring manager name is NOT explicitly specified in the Job Description, ALWAYS start the cover letter with: "Dear Recruitment Team," or "Dear Hiring Manager,".
     - UNIVERSAL COMPANY FALLBACK: If a company name is NOT specified in the Job Description, frame the Cover Letter universally (e.g., "I am writing to express my enthusiastic interest in the ${targetRole} position at your esteemed organization...").
 
+11. AUTOMATIC COMPANY NAME DETECTION & EXTRACTION:
+    - Carefully analyze the Job Description and Target Role text to extract the hiring company or client name (e.g. "IFG", "PT Bukit Asam Tbk", "Pupuk Sriwidjaja", "Pertamina", "DevManpower", "Google", etc.).
+    - If a company name is identified, return it in the "companyName" field as a clean, concise string (e.g. "PT Bukit Asam Tbk" or "DevManpower").
+    - If NO company name is mentioned in the job description, return an empty string "" for "companyName".
+
 TARGET ROLE: ${targetRole}
 JOB DESCRIPTION:
 ${jobDescription}
@@ -616,6 +621,7 @@ ${masterCvRaw}
 
 Return ONLY a raw JSON object with the following exact keys:
 {
+  "companyName": "<extracted company name from JD if present, else empty string \"\">",
   "matchScore": <integer between 80 and 95 representing the high ATS match score after active keyword tailoring>,
   "isMisaligned": <boolean, true if major domain misalignment is detected>,
   "misalignmentReason": "<explanation of gap if misaligned, else empty string>",
@@ -641,6 +647,7 @@ Do NOT wrap the response in markdown blocks (e.g., \`\`\`json). Just the raw JSO
       let coldEmailTextResult = "";
       let matchScoreResult = 75;
       let missingKeywordsResult: string[] = [];
+      let companyNameResult = "";
 
       let isMisalignedResult = false;
       let misalignmentReasonResult = "";
@@ -668,11 +675,12 @@ Do NOT wrap the response in markdown blocks (e.g., \`\`\`json). Just the raw JSO
 
           const responseObj = JSON.parse(cleanJsonString);
           tailoredResumeResult = responseObj.tailoredResume as TailoredResume;
+          companyNameResult = (responseObj.companyName || "").trim();
           
           let rawCoverLetter = (responseObj.coverLetter || "")
             .replace(/\[(Current Date|Date|Today's Date|Today Date|Date Here)\]/gi, currentDateString)
             .replace(/\[(Hiring Manager|Recipient Name|Recruiter Name|Name)\]/gi, "Hiring Manager")
-            .replace(/\[(Company Name|Company|Organization Name|Organization)\]/gi, "your organization")
+            .replace(/\[(Company Name|Company|Organization Name|Organization)\]/gi, companyNameResult || "your organization")
             .replace(/Dear \[.*?\]/gi, "Dear Recruitment Team,");
           
           if (!rawCoverLetter.includes("Dear ")) {
@@ -682,7 +690,7 @@ Do NOT wrap the response in markdown blocks (e.g., \`\`\`json). Just the raw JSO
           const rawColdEmail = (responseObj.coldEmail || "")
             .replace(/\[(Current Date|Date|Today's Date|Today Date|Date Here)\]/gi, currentDateString)
             .replace(/\[(Hiring Manager|Recipient Name|Recruiter Name|Name)\]/gi, "Hiring Manager")
-            .replace(/\[(Company Name|Company|Organization Name|Organization)\]/gi, "your organization")
+            .replace(/\[(Company Name|Company|Organization Name|Organization)\]/gi, companyNameResult || "your organization")
             .replace(/Dear \[.*?\]/gi, "Dear Recruitment Team,");
 
           coverLetterTextResult = rawCoverLetter;
@@ -718,6 +726,7 @@ Do NOT wrap the response in markdown blocks (e.g., \`\`\`json). Just the raw JSO
 
       return NextResponse.json({
         success: true,
+        companyName: companyNameResult,
         tailoredResume: tailoredResumeResult,
         coverLetter: coverLetterTextResult,
         coldEmail: coldEmailTextResult,

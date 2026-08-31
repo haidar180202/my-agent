@@ -148,6 +148,7 @@ export default function AtsGeneratePage() {
 
       const data = await res.json();
       setTailoredResume(data.tailoredResume as TailoredResume);
+      if (data.companyName) setCompanyName(data.companyName);
       setCoverLetterText(data.coverLetter || "");
       setColdEmailText(data.coldEmail || "");
       setMatchScore(data.matchScore || 0);
@@ -1186,7 +1187,11 @@ export default function AtsGeneratePage() {
                   {activeTab === "cv" && result.cvUrl && (
                     <a
                       href={result.cvUrl}
-                      download={`${targetRole.replace(/\s+/g, "_")}_CV_${matchScore || "tailored"}_Match.pdf`}
+                      download={
+                        companyName.trim()
+                          ? `${targetRole.trim().replace(/[^a-zA-Z0-9]/g, "_").replace(/_+/g, "_")}_${companyName.trim().replace(/[^a-zA-Z0-9]/g, "_").replace(/_+/g, "_")}_CV_${(tailoredResume?.personalInfo?.name || "Muhammad Haidar Shahab").trim().replace(/[^a-zA-Z0-9]/g, "_").replace(/_+/g, "_")}.pdf`
+                          : `${targetRole.trim().replace(/[^a-zA-Z0-9]/g, "_").replace(/_+/g, "_")}_CV_${(tailoredResume?.personalInfo?.name || "Muhammad Haidar Shahab").trim().replace(/[^a-zA-Z0-9]/g, "_").replace(/_+/g, "_")}.pdf`
+                      }
                       className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-medium text-sm transition-colors flex items-center gap-1.5 cursor-pointer"
                     >
                       📥 Download CV
@@ -1195,7 +1200,11 @@ export default function AtsGeneratePage() {
                   {activeTab === "coverLetter" && result.coverLetterUrl && (
                     <a
                       href={result.coverLetterUrl}
-                      download={`${targetRole.replace(/\s+/g, "_")}_CoverLetter_${matchScore || "tailored"}_Match.pdf`}
+                      download={
+                        companyName.trim()
+                          ? `${targetRole.trim().replace(/[^a-zA-Z0-9]/g, "_").replace(/_+/g, "_")}_${companyName.trim().replace(/[^a-zA-Z0-9]/g, "_").replace(/_+/g, "_")}_Cover_Letter_${(tailoredResume?.personalInfo?.name || "Muhammad Haidar Shahab").trim().replace(/[^a-zA-Z0-9]/g, "_").replace(/_+/g, "_")}.pdf`
+                          : `${targetRole.trim().replace(/[^a-zA-Z0-9]/g, "_").replace(/_+/g, "_")}_Cover_Letter_${(tailoredResume?.personalInfo?.name || "Muhammad Haidar Shahab").trim().replace(/[^a-zA-Z0-9]/g, "_").replace(/_+/g, "_")}.pdf`
+                      }
                       className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-medium text-sm transition-colors flex items-center gap-1.5 cursor-pointer"
                     >
                       📥 Download Letter
