@@ -117,6 +117,19 @@ export default function CopilotPage() {
   // Copilot Response State
   const [copilotData, setCopilotData] = useState<CopilotResponse | null>(null);
 
+  // Conversation History Memory Stack & Session Recap State
+  const [conversationHistory, setConversationHistory] = useState<
+    { role: "interviewer" | "copilot"; text: string; modelAnswer?: string }[]
+  >([]);
+  const [sessionRecap, setSessionRecap] = useState<{
+    executiveSummary: string;
+    topicsCovered: string[];
+    strengthsDemonstrated: string[];
+    followUpActionItems: string[];
+  } | null>(null);
+  const [isRecapModalOpen, setIsRecapModalOpen] = useState(false);
+  const [recapLoading, setRecapLoading] = useState(false);
+
   const recognitionRef = useRef<SpeechRecognitionInstance | null>(null);
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -324,9 +337,7 @@ export default function CopilotPage() {
         return;
       }
 
-      setLoading(true);
       setError("");
-
       try {
         const res = await fetch("/api/copilot", {
           method: "POST",
@@ -339,6 +350,7 @@ export default function CopilotPage() {
             liveQuestionText: questionToAsk.trim(),
             screenImageBase64: screenImageBase64 || null,
             copilotMode,
+            conversationHistory,
           }),
         });
 
@@ -348,7 +360,22 @@ export default function CopilotPage() {
         }
 
         const data = await res.json();
-        setCopilotData(data as CopilotResponse);
+        const responseObj = data as CopilotResponse;
+        setCopilotData(responseObj);
+
+        // Update Memory Stack with new Q&A Turn
+        setConversationHistory((prev) => [
+          ...prev,
+          {
+            role: "interviewer",
+            text: questionToAsk.trim() || "[Screen Capture Image Problem]",
+          },
+          {
+            role: "copilot",
+            text: responseObj.modelAnswer,
+            modelAnswer: responseObj.modelAnswer,
+          },
+        ]);
       } catch (err) {
         console.error(err);
         const errorVal = err as Error;
@@ -357,8 +384,49 @@ export default function CopilotPage() {
         setLoading(false);
       }
     },
-    [password, companyName, targetRole, jobDescription, liveTranscript, manualQuestionInput, copilotMode],
+    [password, companyName, targetRole, jobDescription, liveTranscript, manualQuestionInput, copilotMode, conversationHistory]
   );
+
+  // Trigger 1-Hour Full Session Recap
+  const handleFetchSessionRecap = useCallback(async () => {
+    let activePassword = password;
+    if (!activePassword && typeof window !== "undefined") {
+      activePassword = localStorage.getItem("master_cv_pass") || "";
+    }
+    if (!activePassword) {
+      setError("Master Vault password required to generate session recap");
+      return;
+    }
+    setRecapLoading(true);
+    setError("");
+
+    try {
+      const res = await fetch("/api/copilot", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "recap-session",
+          password: activePassword,
+          companyName,
+          targetRole,
+          conversationHistory,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok || data.error) {
+        throw new Error(data.error || "Failed to generate session recap");
+      }
+
+      setSessionRecap(data.recap);
+      setIsRecapModalOpen(true);
+    } catch (err) {
+      const errorVal = err as Error;
+      setError("Recap Error: " + errorVal.message);
+    } finally {
+      setRecapLoading(false);
+    }
+  }, [password, companyName, targetRole, conversationHistory]);
 
   // Take Snapshot from Video Stream & Send to Gemini Vision
   const handleSnapAndSolveScreen = useCallback(async () => {
@@ -574,12 +642,23 @@ export default function CopilotPage() {
           </button>
         </div>
 
-        {/* Middle Domain & Live Meeting Timer */}
-        <div className="flex items-center gap-3 text-zinc-400 font-mono text-[11px]">
+        {/* Middle Domain, Live Meeting Timer & Memory Stack Badge */}
+        <div className="flex items-center gap-2 sm:gap-3 text-zinc-400 font-mono text-[11px]">
           <span className="hidden sm:inline-block font-semibold text-zinc-300">meet.google.com / Zoom</span>
           <span className="flex items-center gap-1 font-bold text-amber-400 bg-amber-950/40 px-2 py-0.5 rounded-lg border border-amber-800/30">
             ⏰ {formatTimer(meetingSeconds)}
           </span>
+          <span className="flex items-center gap-1 font-bold text-emerald-400 bg-emerald-950/40 px-2 py-0.5 rounded-lg border border-emerald-800/30">
+            🧠 Memory: {Math.floor(conversationHistory.length / 2)} Turns
+          </span>
+          <button
+            type="button"
+            onClick={handleFetchSessionRecap}
+            disabled={recapLoading || conversationHistory.length === 0}
+            className="px-2.5 py-0.5 rounded-lg bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-extrabold text-[10px] cursor-pointer shadow-md disabled:opacity-40 transition-all"
+          >
+            {recapLoading ? "Generating..." : "📊 Session Recap"}
+          </button>
         </div>
 
         {/* Right Glass Opacity Switcher & Control Buttons */}
@@ -1105,6 +1184,72 @@ export default function CopilotPage() {
         </main>
       )}
 
+      {/* 1-HOUR FULL SESSION RECAP MODAL */}
+      {isRecapModalOpen && sessionRecap && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-md animate-fade-in">
+          <div className="flex flex-col gap-5 w-full max-w-2xl max-h-[85vh] overflow-y-auto p-6 rounded-3xl bg-zinc-900 border border-emerald-500/50 shadow-2xl text-zinc-100">
+            <div className="flex items-center justify-between border-b border-zinc-800 pb-3">
+              <div className="flex items-center gap-2">
+                <span className="text-xl">📊</span>
+                <h3 className="text-lg font-extrabold text-emerald-400">1-Hour Full Session Recap Report</h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsRecapModalOpen(false)}
+                className="px-3 py-1 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-white text-xs font-bold transition-colors cursor-pointer"
+              >
+                Close
+              </button>
+            </div>
+
+            {/* Executive Summary */}
+            <div className="flex flex-col gap-1.5 p-4 rounded-2xl bg-zinc-950 border border-zinc-800">
+              <span className="text-[10px] font-black uppercase tracking-wider text-emerald-400">Executive Performance Summary</span>
+              <p className="text-xs leading-relaxed text-zinc-300 font-medium">{sessionRecap.executiveSummary}</p>
+            </div>
+
+            {/* Topics Covered */}
+            <div className="flex flex-col gap-2 p-4 rounded-2xl bg-zinc-950 border border-zinc-800">
+              <span className="text-[10px] font-black uppercase tracking-wider text-blue-400">Topics &amp; Sub-Topics Covered</span>
+              <div className="flex flex-wrap gap-1.5">
+                {sessionRecap.topicsCovered.map((topic, i) => (
+                  <span key={i} className="px-2.5 py-1 rounded-lg bg-blue-950/60 border border-blue-800/40 text-blue-300 text-[11px] font-bold">
+                    #{topic}
+                  </span>
+                ))}
+              </div>
+            </div>
+
+            {/* Strengths Demonstrated */}
+            <div className="flex flex-col gap-2 p-4 rounded-2xl bg-zinc-950 border border-zinc-800">
+              <span className="text-[10px] font-black uppercase tracking-wider text-purple-400">Proven Competencies Demonstrated</span>
+              <ul className="list-disc list-inside flex flex-col gap-1.5 text-xs text-zinc-300 font-medium">
+                {sessionRecap.strengthsDemonstrated.map((str, i) => (
+                  <li key={i}>{str}</li>
+                ))}
+              </ul>
+            </div>
+
+            {/* Follow Up Action Items */}
+            <div className="flex flex-col gap-2 p-4 rounded-2xl bg-zinc-950 border border-zinc-800">
+              <span className="text-[10px] font-black uppercase tracking-wider text-amber-400">Post-Interview Action Items &amp; Thank You Note Points</span>
+              <ul className="list-disc list-inside flex flex-col gap-1.5 text-xs text-amber-200/90 font-medium">
+                {sessionRecap.followUpActionItems.map((item, i) => (
+                  <li key={i}>{item}</li>
+                ))}
+              </ul>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => handleCopyText(`Executive Summary:\n${sessionRecap.executiveSummary}\n\nTopics:\n${sessionRecap.topicsCovered.join(", ")}\n\nStrengths:\n${sessionRecap.strengthsDemonstrated.join("\n")}`, "recap-copy")}
+              className="w-full py-2.5 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs shadow-lg cursor-pointer transition-all"
+            >
+              {copiedKey === "recap-copy" ? "✅ Copied Session Recap Report!" : "📋 1-Click Copy Full Session Report"}
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -57,6 +57,7 @@ export async function POST(req: Request) {
   try {
     const body = await req.json();
     const {
+      action,
       password,
       jobDescription,
       companyName,
@@ -64,14 +65,11 @@ export async function POST(req: Request) {
       liveQuestionText,
       screenImageBase64,
       copilotMode = "general",
+      conversationHistory = [],
     } = body;
 
     if (!password) {
       return NextResponse.json({ error: "Password is required for Master CV authorization" }, { status: 401 });
-    }
-
-    if (!liveQuestionText && !screenImageBase64) {
-      return NextResponse.json({ error: "Interviewer question text or screen capture image is required" }, { status: 400 });
     }
 
     // 1. Decrypt Master CV
@@ -90,6 +88,43 @@ export async function POST(req: Request) {
 
     const ai = new GoogleGenAI({ apiKey });
 
+    // Action: 1-Hour Full Session Recap
+    if (action === "recap-session") {
+      const recapPrompt = `You are an executive interview performance coach.
+Analyze the following complete 1-hour interview conversation log between an Interviewer and a Candidate.
+
+TARGET COMPANY: ${companyName || "Target Company"}
+TARGET ROLE: ${targetRole || "Software Engineer / Tech Lead"}
+MASTER CV CONTEXT:
+${JSON.stringify(masterCvData, null, 2)}
+
+FULL SESSION CONVERSATION HISTORY LOG:
+${JSON.stringify(conversationHistory, null, 2)}
+
+Generate a comprehensive JSON session recap object with the following exact keys:
+{
+  "executiveSummary": "A concise 3-4 sentence overview of the interview performance, key competencies demonstrated, and overall impression.",
+  "topicsCovered": ["Array of technical/behavioral topics and sub-topics discussed during the call"],
+  "strengthsDemonstrated": ["Array of candidate's strongest technical and leadership achievements highlighted"],
+  "followUpActionItems": ["Array of 3 recommended post-interview follow-up actions and thank-you note points"]
+}
+
+Do NOT wrap response in markdown code blocks. Return ONLY raw JSON.`;
+
+      const recapResponse = await ai.models.generateContent({
+        model: "gemini-2.5-flash",
+        contents: recapPrompt,
+      });
+
+      const cleanRecapJson = (recapResponse.text || "").replace(/```json/g, "").replace(/```/g, "").trim();
+      const recapResult = JSON.parse(cleanRecapJson);
+      return NextResponse.json({ success: true, recap: recapResult });
+    }
+
+    if (!liveQuestionText && !screenImageBase64) {
+      return NextResponse.json({ error: "Interviewer question text or screen capture image is required" }, { status: 400 });
+    }
+
     const modeInstruction =
       copilotMode === "behavioral-star"
         ? `Format the response specifically around the STAR Behavioral Framework (Situation, Task, Action, Result) using candidate's real experience from Master CV.`
@@ -99,9 +134,19 @@ export async function POST(req: Request) {
         ? `Focus on high-availability system architecture, database choices, caching, microservices, and trade-off analysis.`
         : `Provide general executive interview talking points.`;
 
+    const historyFormatted = Array.isArray(conversationHistory) && conversationHistory.length > 0
+      ? JSON.stringify(conversationHistory, null, 2)
+      : "No previous turns yet in this session.";
+
     const promptText = `You are an elite real-time AI Interview Copilot assisting a candidate during a live technical/behavioral interview.
 Active Mode: ${copilotMode.toUpperCase()}
 Mode Instruction: ${modeInstruction}
+
+CRITICAL DIRECTIVE #12 (IMMUTABLE CONSISTENCY & ANTI-CONTRADICTION MANDATE):
+- Review the attached PREVIOUS CONVERSATION HISTORY LOG before generating your response.
+- Any capability, technology choice, architectural decision, or stance affirmed in previous turns IS IMMUTABLE TRUTH.
+- You MUST NOT contradict previous statements, answers, or Master CV facts under any circumstances.
+- Maintain seamless context continuity when interviewer asks follow-up sub-questions (e.g. going from Topic A to sub-topic A.1 or A.B). Always know what parent topic or project is being referenced!
 
 Candidate Master CV Context:
 ${JSON.stringify(masterCvData, null, 2)}
@@ -111,7 +156,10 @@ Target Role: ${targetRole || "Software Engineer / Tech Lead"}
 Target Job Description:
 ${jobDescription || "Standard Technical & Leadership Role"}
 
-Interviewer Input:
+PREVIOUS CONVERSATION HISTORY LOG (LAST N TURNS):
+${historyFormatted}
+
+CURRENT INTERVIEWER INPUT:
 "${liveQuestionText || "See attached screen capture image for coding problem / question"}"
 
 Generate a JSON object matching this schema EXACTLY:
@@ -121,7 +169,7 @@ Generate a JSON object matching this schema EXACTLY:
     "Bullet 2: Specific metric, scale, or tool used (e.g. Redis, Quarkus, 40% latency reduction)",
     "Bullet 3: How this experience directly solves ${companyName || "the company"}'s technical challenge"
   ],
-  "modelAnswer": "A concise 3-sentence spoken response the candidate can say out loud right now.",
+  "modelAnswer": "A concise 3-sentence spoken response the candidate can say out loud right now, 100% consistent with all previous turns.",
   "keyKeywords": ["Keyword1", "Keyword2", "Keyword3", "Keyword4"],
   "codeSolution": ${copilotMode === "coding" || screenImageBase64 ? `"Provide full, optimal code solution when coding problem is present, else null"` : "null"},
   "starFramework": ${
