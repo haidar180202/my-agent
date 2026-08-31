@@ -229,6 +229,29 @@ export default function CopilotPage() {
     }
   }, [isListening]);
 
+  // Switch Agent Engine IPC bridge for Desktop & Web
+  const handleSwitchAgentEngine = useCallback((routePath: string) => {
+    if (typeof window !== "undefined") {
+      const electronWin = window as unknown as {
+        require?: (module: string) => {
+          ipcRenderer: {
+            send: (channel: string, ...args: unknown[]) => void;
+          };
+        };
+      };
+      if (electronWin.require) {
+        try {
+          const { ipcRenderer } = electronWin.require("electron");
+          ipcRenderer.send("switch-agent-engine", routePath);
+          return;
+        } catch {
+          // Ignore
+        }
+      }
+      window.location.href = routePath;
+    }
+  }, []);
+
   // Start HTML5 Screen Share Stream
   const handleStartScreenShare = useCallback(async () => {
     try {
@@ -517,12 +540,30 @@ export default function CopilotPage() {
         style={isDesktopMode ? ({ WebkitAppRegion: "drag" } as React.CSSProperties) : undefined}
       >
         
-        {/* Left Brand Badge & Hide Toggle */}
+        {/* Left Brand Badge & Agent Engine Switcher */}
         <div className="flex items-center gap-2" style={{ WebkitAppRegion: "no-drag" } as React.CSSProperties}>
           <span className="flex items-center gap-1.5 font-extrabold text-white bg-emerald-950/60 border border-emerald-700/60 px-2.5 py-1 rounded-xl">
             <span>🦜</span>
             <span className="tracking-tight">ParakeetAI Copilot</span>
           </span>
+
+          {/* Multi-Agent Workspace Engine Switcher Dropdown */}
+          <select
+            onChange={(e) => {
+              if (e.target.value) handleSwitchAgentEngine(e.target.value);
+            }}
+            value="/copilot"
+            className="px-2.5 py-1 rounded-xl bg-zinc-900 border border-zinc-700/60 text-emerald-400 font-bold text-[11px] outline-none cursor-pointer hover:bg-zinc-800"
+          >
+            <option value="/copilot">💬 Copilot Engine</option>
+            <option value="/ats-generate">📄 ATS Resume Generator</option>
+            <option value="/master-cv">🔑 Master CV Vault</option>
+            <option value="/ai-interview">🎯 AI Interviewer</option>
+            <option value="/interview-prep">📚 Interview Prep</option>
+            <option value="/pitch-builder">🎤 Pitch Builder</option>
+            <option value="/video-pipeline">📹 Video Pipeline</option>
+            <option value="/history">📜 History Vault</option>
+          </select>
 
           <button
             type="button"

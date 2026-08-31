@@ -64,6 +64,16 @@ function createWindow() {
     }
   });
 
+  // IPC Event: Switch Workspace Agent Engine (Cross-Platform Routing for Windows, macOS, Linux)
+  ipcMain.on("switch-agent-engine", (event, routePath) => {
+    if (!mainWindow) return;
+    const baseUrl = process.env.COPILOT_URL || "http://localhost:3000";
+    const cleanPath = routePath.startsWith("/") ? routePath : `/${routePath}`;
+    const targetUrl = `${baseUrl.replace(/\/+$/, "")}${cleanPath}${cleanPath.includes("?") ? "&" : "?"}desktop=true`;
+    console.log(`🚀 Switching Agent Engine to: ${targetUrl}`);
+    mainWindow.loadURL(targetUrl);
+  });
+
   // Global Keyboard Shortcuts
   // Alt+Shift+H: Hide / Show Window (Stealth Toggle)
   let isStealthHidden = false;
