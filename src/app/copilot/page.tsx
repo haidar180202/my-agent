@@ -122,6 +122,7 @@ export default function CopilotPage() {
     { role: "interviewer" | "copilot"; text: string; modelAnswer?: string }[]
   >([]);
   const [sessionRecap, setSessionRecap] = useState<{
+    sessionTimestamp?: string;
     executiveSummary: string;
     topicsCovered: string[];
     strengthsDemonstrated: string[];
@@ -642,7 +643,7 @@ export default function CopilotPage() {
           </button>
         </div>
 
-        {/* Middle Domain, Live Meeting Timer & Memory Stack Badge */}
+        {/* Middle Domain, Live Meeting Timer, Memory Stack Badge & End Meeting Button */}
         <div className="flex items-center gap-2 sm:gap-3 text-zinc-400 font-mono text-[11px]">
           <span className="hidden sm:inline-block font-semibold text-zinc-300">meet.google.com / Zoom</span>
           <span className="flex items-center gap-1 font-bold text-amber-400 bg-amber-950/40 px-2 py-0.5 rounded-lg border border-amber-800/30">
@@ -651,13 +652,18 @@ export default function CopilotPage() {
           <span className="flex items-center gap-1 font-bold text-emerald-400 bg-emerald-950/40 px-2 py-0.5 rounded-lg border border-emerald-800/30">
             🧠 Memory: {Math.floor(conversationHistory.length / 2)} Turns
           </span>
+          {copilotData?.activeKeyIndex && (
+            <span className="hidden md:flex items-center gap-1 font-bold text-purple-400 bg-purple-950/40 px-2 py-0.5 rounded-lg border border-purple-800/30">
+              🔑 Key #{copilotData.activeKeyIndex}/{copilotData.totalKeys || 1}
+            </span>
+          )}
           <button
             type="button"
             onClick={handleFetchSessionRecap}
             disabled={recapLoading || conversationHistory.length === 0}
-            className="px-2.5 py-0.5 rounded-lg bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-extrabold text-[10px] cursor-pointer shadow-md disabled:opacity-40 transition-all"
+            className="px-2.5 py-0.5 rounded-lg bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-700 hover:to-rose-700 text-white font-extrabold text-[10px] cursor-pointer shadow-md disabled:opacity-40 transition-all"
           >
-            {recapLoading ? "Generating..." : "📊 Session Recap"}
+            {recapLoading ? "Generating Recap..." : "🏁 Selesai / End Meeting"}
           </button>
         </div>
 
@@ -1113,6 +1119,26 @@ export default function CopilotPage() {
                     </div>
                   )}
 
+                  {/* INDONESIAN QUESTION TRANSLATION & INTENT EXPLANATION CARD */}
+                  {(copilotData.questionTranslation || copilotData.questionIntentIndonesian) && (
+                    <div className="flex flex-col gap-2 p-4 rounded-2xl bg-indigo-50/60 dark:bg-indigo-950/30 border border-indigo-200 dark:border-indigo-900/40">
+                      <span className="text-[10px] font-black uppercase tracking-wider text-indigo-600 dark:text-indigo-400 flex items-center gap-1.5">
+                        <span>💡</span>
+                        <span>Terjemahan &amp; Maksud Pertanyaan Pewawancara</span>
+                      </span>
+                      {copilotData.questionTranslation && (
+                        <p className="text-xs font-semibold text-zinc-800 dark:text-zinc-200 italic">
+                          &ldquo;{copilotData.questionTranslation}&rdquo;
+                        </p>
+                      )}
+                      {copilotData.questionIntentIndonesian && (
+                        <p className="text-xs font-medium text-indigo-900 dark:text-indigo-200 bg-indigo-100/70 dark:bg-indigo-900/40 p-2.5 rounded-xl border border-indigo-200/50 dark:border-indigo-800/40 leading-relaxed">
+                          🎯 <strong className="font-bold">Maksud &amp; Inti Pertanyaan:</strong> {copilotData.questionIntentIndonesian}
+                        </p>
+                      )}
+                    </div>
+                  )}
+
                   {/* BEHAVIORAL STAR FRAMEWORK CARDS (When STAR Mode is Active) */}
                   {copilotData.starFramework && (
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
@@ -1191,7 +1217,7 @@ export default function CopilotPage() {
             <div className="flex items-center justify-between border-b border-zinc-800 pb-3">
               <div className="flex items-center gap-2">
                 <span className="text-xl">📊</span>
-                <h3 className="text-lg font-extrabold text-emerald-400">1-Hour Full Session Recap Report</h3>
+                <h3 className="text-lg font-extrabold text-emerald-400">Full Session Recap Report</h3>
               </div>
               <button
                 type="button"
@@ -1201,6 +1227,14 @@ export default function CopilotPage() {
                 Close
               </button>
             </div>
+
+            {/* Session Timestamp Badge */}
+            {sessionRecap.sessionTimestamp && (
+              <div className="flex items-center gap-1.5 px-3 py-1 rounded-xl bg-emerald-950/60 border border-emerald-800/40 text-emerald-300 text-xs font-bold self-start">
+                <span>📅 Sesi Wawancara:</span>
+                <span>{sessionRecap.sessionTimestamp}</span>
+              </div>
+            )}
 
             {/* Executive Summary */}
             <div className="flex flex-col gap-1.5 p-4 rounded-2xl bg-zinc-950 border border-zinc-800">

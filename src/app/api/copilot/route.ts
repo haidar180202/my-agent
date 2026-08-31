@@ -49,8 +49,62 @@ export interface CopilotResponse {
   talkingPoints: string[];
   modelAnswer: string;
   keyKeywords: string[];
+  questionTranslation?: string;
+  questionIntentIndonesian?: string;
   codeSolution?: string;
   starFramework?: StarFramework;
+  activeKeyIndex?: number;
+  totalKeys?: number;
+}
+
+// Multi-API Key Resolver Helper
+function getGeminiApiKeys(): string[] {
+  const keys: string[] = [];
+
+  if (process.env.GEMINI_API_KEYS) {
+    const splitKeys = process.env.GEMINI_API_KEYS.split(",").map((k) => k.trim()).filter(Boolean);
+    keys.push(...splitKeys);
+  }
+
+  for (let i = 1; i <= 10; i++) {
+    const k = process.env[`GEMINI_API_KEY_${i}`];
+    if (k && k.trim()) {
+      keys.push(k.trim());
+    }
+  }
+
+  if (keys.length === 0 && process.env.GEMINI_API_KEY) {
+    keys.push(process.env.GEMINI_API_KEY.trim());
+  }
+
+  return keys;
+}
+
+// Failover Load Balancer Execution Helper
+async function generateWithFailover(
+  contents: (string | { inlineData: { data: string; mimeType: string } })[] | string
+) {
+  const keys = getGeminiApiKeys();
+  if (keys.length === 0) {
+    throw new Error("No GEMINI_API_KEY configured in environment variables");
+  }
+
+  let lastError: Error | null = null;
+  for (let i = 0; i < keys.length; i++) {
+    try {
+      const ai = new GoogleGenAI({ apiKey: keys[i] });
+      const response = await ai.models.generateContent({
+        model: "gemini-2.5-flash",
+        contents,
+      });
+      return { response, activeKeyIndex: i + 1, totalKeys: keys.length };
+    } catch (err) {
+      lastError = err as Error;
+      console.warn(`⚠️ Gemini API Key #${i + 1} rate limited. Auto-switching to Key #${i + 2}... Error: ${lastError.message}`);
+    }
+  }
+
+  throw new Error(`All ${keys.length} Gemini API keys failed or rate-limited: ${lastError?.message}`);
 }
 
 export async function POST(req: Request) {
@@ -80,18 +134,10 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Invalid decryption password. Access Denied." }, { status: 401 });
     }
 
-    // 2. Initialize Gemini API
-    const apiKey = process.env.GEMINI_API_KEY;
-    if (!apiKey) {
-      return NextResponse.json({ error: "GEMINI_API_KEY is not configured" }, { status: 500 });
-    }
-
-    const ai = new GoogleGenAI({ apiKey });
-
-    // Action: 1-Hour Full Session Recap
+    // Action: End Meeting & Simple Indonesian Session Recap
     if (action === "recap-session") {
-      const recapPrompt = `You are an executive interview performance coach.
-Analyze the following complete 1-hour interview conversation log between an Interviewer and a Candidate.
+      const recapPrompt = `You are a friendly executive interview performance coach.
+Analyze the following complete interview conversation log between an Interviewer and a Candidate.
 
 TARGET COMPANY: ${companyName || "Target Company"}
 TARGET ROLE: ${targetRole || "Software Engineer / Tech Lead"}
@@ -101,24 +147,35 @@ ${JSON.stringify(masterCvData, null, 2)}
 FULL SESSION CONVERSATION HISTORY LOG:
 ${JSON.stringify(conversationHistory, null, 2)}
 
-Generate a comprehensive JSON session recap object with the following exact keys:
+Generate a simple, clear Indonesian JSON session recap object with the following exact keys:
 {
-  "executiveSummary": "A concise 3-4 sentence overview of the interview performance, key competencies demonstrated, and overall impression.",
-  "topicsCovered": ["Array of technical/behavioral topics and sub-topics discussed during the call"],
-  "strengthsDemonstrated": ["Array of candidate's strongest technical and leadership achievements highlighted"],
-  "followUpActionItems": ["Array of 3 recommended post-interview follow-up actions and thank-you note points"]
+  "executiveSummary": "Rangkuman simpel 3-4 kalimat dalam Bahasa Indonesia mengenai performa wawancara dan impresi utama.",
+  "topicsCovered": ["Array topik teknis/perilaku yang berhasil dibahas selama sesi wawancara"],
+  "strengthsDemonstrated": ["Array 3-4 poin kekuatan teknis dan hasil nyata yang berhasil dibuktikan candidate"],
+  "followUpActionItems": ["Array 3 rekomendasi tindakan pasca-wawancara dan poin ucapan terima kasih"]
 }
 
 Do NOT wrap response in markdown code blocks. Return ONLY raw JSON.`;
 
-      const recapResponse = await ai.models.generateContent({
-        model: "gemini-2.5-flash",
-        contents: recapPrompt,
-      });
+      const formattedTimestamp = new Date().toLocaleDateString("id-ID", {
+        weekday: "long",
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      }) + " WIB";
 
+      const { response: recapResponse } = await generateWithFailover(recapPrompt);
       const cleanRecapJson = (recapResponse.text || "").replace(/```json/g, "").replace(/```/g, "").trim();
       const recapResult = JSON.parse(cleanRecapJson);
-      return NextResponse.json({ success: true, recap: recapResult });
+      return NextResponse.json({
+        success: true,
+        recap: {
+          ...recapResult,
+          sessionTimestamp: formattedTimestamp,
+        },
+      });
     }
 
     if (!liveQuestionText && !screenImageBase64) {
@@ -164,12 +221,14 @@ CURRENT INTERVIEWER INPUT:
 
 Generate a JSON object matching this schema EXACTLY:
 {
+  "questionTranslation": "Terjemahan akurat pertanyaan pewawancara ke dalam Bahasa Indonesia yang alami dan mudah dipahami",
+  "questionIntentIndonesian": "Penjelasan simpel 1-2 kalimat dalam Bahasa Indonesia: Apa maksud & inti sebenarnya yang ingin dicari/diuji oleh pewawancara dari pertanyaan ini",
   "talkingPoints": [
     "Bullet 1: Direct achievement or strategy answering the question / screen problem",
     "Bullet 2: Specific metric, scale, or tool used (e.g. Redis, Quarkus, 40% latency reduction)",
     "Bullet 3: How this experience directly solves ${companyName || "the company"}'s technical challenge"
   ],
-  "modelAnswer": "A concise 3-sentence spoken response the candidate can say out loud right now, 100% consistent with all previous turns.",
+  "modelAnswer": "A concise 3-sentence spoken response the candidate can say out loud right now in English, 100% consistent with all previous turns.",
   "keyKeywords": ["Keyword1", "Keyword2", "Keyword3", "Keyword4"],
   "codeSolution": ${copilotMode === "coding" || screenImageBase64 ? `"Provide full, optimal code solution when coding problem is present, else null"` : "null"},
   "starFramework": ${
@@ -199,16 +258,18 @@ CRITICAL: Return ONLY raw JSON without Markdown code blocks.`;
       });
     }
 
-    const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
-      contents,
-    });
+    const { response, activeKeyIndex, totalKeys } = await generateWithFailover(contents);
 
     const textOutput = response.text || "";
     const cleanJson = textOutput.replace(/```json/g, "").replace(/```/g, "").trim();
     const result = JSON.parse(cleanJson) as CopilotResponse;
 
-    return NextResponse.json({ success: true, ...result });
+    return NextResponse.json({
+      success: true,
+      ...result,
+      activeKeyIndex,
+      totalKeys,
+    });
   } catch (error) {
     console.error("Copilot API Error:", error);
     const errorVal = error as Error;
