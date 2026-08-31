@@ -9,7 +9,7 @@ function createWindow() {
     center: true,
     transparent: true,
     frame: false,
-    alwaysOnTop: false,
+    alwaysOnTop: true,
     resizable: true,
     hasShadow: true,
     skipTaskbar: false,
@@ -19,8 +19,16 @@ function createWindow() {
     },
   });
 
-  // Initial load opens Dashboard Homepage
-  const initialUrl = process.env.COPILOT_URL || "http://localhost:3000/";
+  // Enable OS-Level Anti-Screen Capture Protection (Invisible to Google Meet, Zoom, MS Teams)
+  try {
+    mainWindow.setContentProtection(true);
+    console.log("🛡️ Stealth Screen-Capture Protection Activated!");
+  } catch (err) {
+    console.error("Failed to enable content protection:", err);
+  }
+
+  // Initial load opens Copilot or Dashboard Homepage
+  const initialUrl = process.env.COPILOT_URL || "http://localhost:3000/copilot?desktop=true";
   mainWindow.loadURL(initialUrl);
 
   // IPC Event: Switch to Floating HUD Mode
@@ -29,7 +37,7 @@ function createWindow() {
     const primaryDisplay = screen.getPrimaryDisplay();
     const { width } = primaryDisplay.workAreaSize;
 
-    mainWindow.setSize(780, 220);
+    mainWindow.setSize(780, 260);
     mainWindow.setPosition(Math.floor((width - 780) / 2), 20);
     mainWindow.setAlwaysOnTop(true, "screen-saver");
   });
@@ -42,13 +50,54 @@ function createWindow() {
     mainWindow.center();
   });
 
-  // Global Keyboard Shortcuts (Alt+S, Alt+L)
+  // IPC Event: Toggle Screen-Capture Stealth Protection
+  ipcMain.on("toggle-stealth-protection", (event, enable) => {
+    if (mainWindow) {
+      mainWindow.setContentProtection(enable);
+    }
+  });
+
+  // IPC Event: Toggle Click-Through Mode
+  ipcMain.on("set-ignore-mouse-events", (event, ignore) => {
+    if (mainWindow) {
+      mainWindow.setIgnoreMouseEvents(ignore, { forward: true });
+    }
+  });
+
+  // Global Keyboard Shortcuts
+  // Alt+Shift+H: Hide / Show Window (Stealth Toggle)
+  let isStealthHidden = false;
+  let isClickThrough = false;
+
+  globalShortcut.register("Alt+Shift+H", () => {
+    if (mainWindow) {
+      if (isStealthHidden) {
+        mainWindow.show();
+        isStealthHidden = false;
+      } else {
+        mainWindow.hide();
+        isStealthHidden = true;
+      }
+    }
+  });
+
+  // Alt+Shift+T: Toggle Click-Through Mouse Pass-Through
+  globalShortcut.register("Alt+Shift+T", () => {
+    if (mainWindow) {
+      isClickThrough = !isClickThrough;
+      mainWindow.setIgnoreMouseEvents(isClickThrough, { forward: true });
+      mainWindow.webContents.send("click-through-toggled", isClickThrough);
+    }
+  });
+
+  // Alt+S: Snap Screen OCR
   globalShortcut.register("Alt+S", () => {
     if (mainWindow) {
       mainWindow.webContents.send("trigger-snap-screen");
     }
   });
 
+  // Alt+L: Toggle Audio Listening
   globalShortcut.register("Alt+L", () => {
     if (mainWindow) {
       mainWindow.webContents.send("trigger-toggle-listen");

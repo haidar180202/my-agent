@@ -692,10 +692,33 @@ export default function CopilotPage() {
           {/* STEP 1: SETUP ROOM */}
           {step === "setup" && (
             <div className="flex flex-col gap-8">
-              <header className="flex flex-col gap-2">
-                <h1 className="text-4xl font-extrabold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-zinc-900 via-zinc-700 to-zinc-900 dark:from-white dark:via-zinc-300 dark:to-white pb-1 leading-tight">
-                  Live AI Interview Copilot &amp; Vision OCR
-                </h1>
+              <header className="flex flex-col gap-3">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                  <h1 className="text-4xl font-extrabold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-zinc-900 via-zinc-700 to-zinc-900 dark:from-white dark:via-zinc-300 dark:to-white pb-1 leading-tight">
+                    Live AI Interview Copilot &amp; Vision OCR
+                  </h1>
+                  
+                  {/* Download Desktop App Button (Visible on Web Vercel Deployment) */}
+                  {!isDesktopMode && (
+                    <a
+                      href="https://github.com/haidar180202/my-agent/releases"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-5 py-2.5 rounded-2xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-extrabold text-xs cursor-pointer shadow-lg transition-all flex items-center justify-center gap-2 self-start sm:self-auto"
+                    >
+                      <span>📥 Download Desktop Stealth App (.exe)</span>
+                    </a>
+                  )}
+
+                  {/* Desktop Mode Active Badge */}
+                  {isDesktopMode && (
+                    <div className="px-4 py-2 rounded-2xl bg-emerald-950/80 border border-emerald-500/60 text-emerald-300 font-extrabold text-xs flex items-center gap-2 shadow-lg">
+                      <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+                      <span>🛡️ OS Stealth Protection: ACTIVE (Invisible to Screen Share)</span>
+                    </div>
+                  )}
+                </div>
+                
                 <p className="text-sm text-zinc-600 dark:text-zinc-400">
                   Stealth sidecar assistant for Zoom/Meet. Listens to interviewer questions &amp; captures LeetCode/HackerRank screen problems with instant Gemini Vision solutions.
                 </p>
