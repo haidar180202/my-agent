@@ -739,16 +739,25 @@ export default function CopilotPage() {
                     Live AI Interview Copilot &amp; Vision OCR
                   </h1>
                   
-                  {/* Download Desktop App Button (Visible on Web Vercel Deployment) */}
+                  {/* Download Desktop App Buttons (Visible on Web Vercel Deployment) */}
                   {!isDesktopMode && (
-                    <a
-                      href="https://github.com/haidar180202/my-agent/releases"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="px-5 py-2.5 rounded-2xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-extrabold text-xs cursor-pointer shadow-lg transition-all flex items-center justify-center gap-2 self-start sm:self-auto"
-                    >
-                      <span>📥 Download Desktop Stealth App (.exe)</span>
-                    </a>
+                    <div className="flex flex-wrap items-center gap-2 self-start sm:self-auto">
+                      <a
+                        href="/downloads/run_copilot.bat"
+                        download="run_copilot.bat"
+                        className="px-4 py-2.5 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-extrabold text-xs cursor-pointer shadow-lg transition-all flex items-center justify-center gap-1.5"
+                      >
+                        <span>🚀 Direct Download Launcher (.bat)</span>
+                      </a>
+                      <a
+                        href="https://github.com/haidar180202/my-agent/releases"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="px-4 py-2.5 rounded-2xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-extrabold text-xs cursor-pointer shadow-lg transition-all flex items-center justify-center gap-1.5"
+                      >
+                        <span>📦 GitHub Installer (.exe)</span>
+                      </a>
+                    </div>
                   )}
 
                   {/* Desktop Mode Active Badge */}
