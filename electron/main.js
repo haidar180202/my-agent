@@ -27,8 +27,8 @@ function createWindow() {
     console.error("Failed to enable content protection:", err);
   }
 
-  // Initial load opens Copilot or Dashboard Homepage
-  const initialUrl = process.env.COPILOT_URL || "http://localhost:3000/copilot?desktop=true";
+  // Initial load opens Copilot or Dashboard Homepage on Production Vercel App
+  const initialUrl = process.env.COPILOT_URL || "https://my-agent-mauve-omega.vercel.app/copilot?desktop=true";
   mainWindow.loadURL(initialUrl);
 
   // IPC Event: Switch to Floating HUD Mode
@@ -67,7 +67,7 @@ function createWindow() {
   // IPC Event: Switch Workspace Agent Engine (Cross-Platform Routing for Windows, macOS, Linux)
   ipcMain.on("switch-agent-engine", (event, routePath) => {
     if (!mainWindow) return;
-    const baseUrl = process.env.COPILOT_URL || "http://localhost:3000";
+    const baseUrl = process.env.COPILOT_URL || "https://my-agent-mauve-omega.vercel.app";
     const cleanPath = routePath.startsWith("/") ? routePath : `/${routePath}`;
     const targetUrl = `${baseUrl.replace(/\/+$/, "")}${cleanPath}${cleanPath.includes("?") ? "&" : "?"}desktop=true`;
     console.log(`🚀 Switching Agent Engine to: ${targetUrl}`);

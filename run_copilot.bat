@@ -8,14 +8,10 @@ echo.
 
 cd /d "%~dp0"
 
-echo 1. Starting Next.js Local Server...
-start "AI Copilot Server" /min npm run dev
+echo 1. Connecting to Production Vercel Server (https://my-agent-mauve-omega.vercel.app)...
+if "%COPILOT_URL%"=="" set COPILOT_URL=https://my-agent-mauve-omega.vercel.app/copilot?desktop=true
 
-echo 2. Waiting for server to initialize...
-timeout /t 6 /nobreak >nul
-
-echo 3. Opening Native Invisible Stealth Windows Overlay (Electron)...
-set COPILOT_URL=http://localhost:3000/copilot?desktop=true
+echo 2. Opening Native Invisible Stealth Windows Overlay (Electron)...
 npx electron electron/main.js
 
 echo.
