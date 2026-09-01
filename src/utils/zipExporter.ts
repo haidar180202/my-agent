@@ -2,9 +2,11 @@ import JSZip from "jszip";
 
 export interface SavedApplication {
   id: string;
+  entryTitle?: string;
   jobTitle?: string;
   companyName: string;
   targetRole: string;
+  salaryRange?: string;
   dateSaved?: string;
   timestamp?: string;
   matchScore: number;

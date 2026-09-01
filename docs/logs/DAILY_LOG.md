@@ -6,7 +6,18 @@ Dokumen ini mencatat seluruh riwayat pengembangan, perbaikan bug, dan penambahan
 
 ## 📅 2026-09-01 (Selasa)
 
-### 🚀 Push #3 (Pending Push to main) — Repository `my-agent` — 21:02 WIB
+### 🚀 Push #4 (Pending Push to main) — Repository `my-agent` — 21:18 WIB
+* **Judul & Fitur**: Editable Free-Text Save Title Template (`NAMA-COMPANY_ROLE_INFO-LAINNYA_SALARY-RANGE`) & Dynamic Salary Range Extraction.
+* **Commit Target**: `main` (`my-agent`)
+* **File Diubah**: `src/app/ats-generate/page.tsx`, `src/app/history/page.tsx`, `src/utils/zipExporter.ts`, `docs/logs/DAILY_LOG.md`
+* **Penjelasan & Dampak**:
+  * **Pola Penamaan Otomatis Free-Text Input**: Saat mengeklik *Save to History*, modal simpan secara otomatis mengisi kolom judul dengan sampel teks bebas sesuai pola `NAMA-COMPANY_ROLE_INFO-LAINNYA_SALARY-RANGE` (misal: `PT Bukit Asam Tbk_Lead Systems Analyst_Hybrid_IDR 25M-35M`).
+  * **Bisa Di-custom 100% Bebas oleh Candidate**: Kolom judul berupa input teks bebas yang bisa diubah, ditambah, atau dikustomisasi sepuasnya oleh candidate sebelum mengonfirmasi penyimpanan.
+  * **Integrasi Judul di Backlog `/history` & File `.md`**: Judul kustom buatan candidate ditampilkan sebagai nama utama pada kartu riwayat di `/history` dan dipakai sebagai nama file saat diunduh (`<Judul_Kustom>_Recap.md`).
+
+---
+
+### 🚀 Push #3 (`27495f1`) — Repository `my-agent` — 21:02 WIB
 * **Judul & Fitur**: Live Markdown Preview First Workflow, Application History Backlog Integration, 1-Click Copy & Download (.md).
 * **Commit Target**: `main` (`my-agent`)
 * **File Diubah**: `src/app/history/page.tsx`, `src/app/ats-generate/page.tsx`, `src/utils/zipExporter.ts`, `docs/logs/DAILY_LOG.md`
@@ -36,20 +47,3 @@ Dokumen ini mencatat seluruh riwayat pengembangan, perbaikan bug, dan penambahan
   * **Integrasi Narasi Berpisah**: Branch `main` difokuskan untuk **Senior Full-Stack Software Engineer (IT)**, sedangkan branch `electrical-engineer` difokuskan untuk **S1 Teknik Elektro (GPA > 3.5) & Lead Systems Analyst / Operations Monitoring**.
   * **Komponen Home & About Mempertahankan Narasi Elektro**: Komponen `Home.jsx` dan `About.jsx` pada branch `electrical-engineer` **100% dipertahankan utuh** dengan narasi gelar formal S1 Teknik Elektro, CISEA v2.0.0 Super-App PT Bukit Asam Tbk (100+ modul), dan interlock PLC PT Pupuk Sriwidjaja.
   * **Sinkronisasi Seluruh Komponen Baru**: Seluruh 30+ komponen, styling modern, logo SVG monogram, dan proyek baru **My Agent — Autonomous Career & Personal Brand OS** (URL Vercel: `https://my-agent-mauve-omega.vercel.app/`) berhasil disinkronkan sempurna dari branch `main` ke `electrical-engineer`.
-
----
-
-## 📅 2026-08-31 (Senin)
-
-### 🚀 Push #7 (`1564f9e` / `317554e` / `40feb5c`) — 21:35 WIB
-* **Judul & Fitur**: Multi-Key API Load Balancer, Question Translation & Intent Explanation, Unlimited Session Memory, End Meeting Recap & Client Audio Protection.
-* **Commit Target**: `main` (`my-agent`)
-* **File Diubah**:
-  * `src/app/api/copilot/route.ts` (Ditambahkan `generateWithFailover` untuk 10 Gemini API keys, `questionTranslation`, `questionIntentIndonesian`, dan `sessionTimestamp`).
-  * `src/app/copilot/page.tsx` (Ditambahkan kartu UI *Terjemahan & Maksud Pertanyaan*, badge *Key #N/M Active*, dan tombol *🏁 Selesai / End Meeting*).
-  * `docs/logs/DAILY_LOG.md` (Dipindahkan ke folder profesional `docs/logs/`).
-* **Penjelasan & Dampak**:
-  * **Failover Otomatis**: Jika Key #1 terkena *Rate Limit (Error 429)*, sistem otomatis berpindah ke Key #2, #3, #4 dst. tanpa interruption.
-  * **Pemahaman Instan**: Pertanyaan bahasa Inggris dari pewawancara/klien dilengkapi terjemahan & penjelasan maksud 1-2 kalimat dalam Bahasa Indonesia.
-  * **Asisten Audio Klien 100% Utuh**: Fitur `🎙️ Listen Audio [Alt+L]` merekam ucapan klien dan men-translate maksudnya secara langsung.
-  * **Bebas Jeda Waktu**: Memori sesi bertahan selama panggilan berlangsung tanpa batas 1 jam sampai tombol *Selesai* diklik.

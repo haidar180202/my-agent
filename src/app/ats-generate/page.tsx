@@ -106,6 +106,8 @@ export default function AtsGeneratePage() {
   // Save to history modal
   const [showSaveModal, setShowSaveModal] = useState(false);
   const [companyName, setCompanyName] = useState("");
+  const [entryTitle, setEntryTitle] = useState("");
+  const [salaryRange, setSalaryRange] = useState("");
 
   // Preload application from History page via sessionStorage (asynchronously to prevent eslint hook warnings)
   useEffect(() => {
@@ -332,9 +334,29 @@ export default function AtsGeneratePage() {
     }
   };
 
+  // Open Save Modal with pre-filled free-text template sample
+  const handleOpenSaveModal = () => {
+    const comp = companyName.trim() || "Company";
+    const role = targetRole.trim() || "Role";
+    
+    let autoSalary = salaryRange.trim();
+    if (!autoSalary) {
+      const salaryMatch = jobDescription.match(/(?:salary|remuneration|gaji|compensation|pay|rate)[:\s]+([^\n.,;]+)/i);
+      if (salaryMatch) {
+        autoSalary = salaryMatch[1].trim();
+      }
+    }
+
+    const defaultPattern = `${comp}_${role}${autoSalary ? `_${autoSalary}` : "_FullTime"}`;
+    setEntryTitle(defaultPattern);
+    if (autoSalary) setSalaryRange(autoSalary);
+    setShowSaveModal(true);
+  };
+
   // Save current tailored CV & Cover letter to LocalStorage
   const handleSaveToHistory = () => {
-    if (!companyName.trim()) return;
+    const finalComp = companyName.trim() || "Target Company";
+    const finalTitle = entryTitle.trim() || `${finalComp}_${targetRole}`;
     
     try {
       const historyRaw = localStorage.getItem("my-agent-history") || localStorage.getItem("ats_application_history");
@@ -349,8 +371,10 @@ export default function AtsGeneratePage() {
       const experiences = tailoredResume?.experience || [];
       const projects = tailoredResume?.projects || [];
 
-      const markdownSummary = `# 📄 Application Recap — ${companyName.trim()}
+      const markdownSummary = `# 📄 Application Recap — ${finalTitle}
+**Company Name**: ${finalComp}  
 **Target Role**: ${targetRole}  
+**Salary Range / Info**: ${salaryRange || "Not specified"}  
 **Date**: ${new Date().toLocaleDateString("id-ID", { year: "numeric", month: "long", day: "numeric" })}  
 **ATS Match Score**: ${matchScore ? `${matchScore}% (High Relevance)` : "N/A"}  
 **Portfolio Link**: ${portfolioUrl}  
@@ -388,8 +412,10 @@ ${coldEmailText || "N/A"}
       const newItem = {
         id: Date.now().toString(),
         timestamp: new Date().toISOString(),
-        companyName: companyName.trim(),
+        entryTitle: finalTitle,
+        companyName: finalComp,
         targetRole,
+        salaryRange,
         theme,
         matchScore,
         jobDescription,
@@ -407,8 +433,7 @@ ${coldEmailText || "N/A"}
       localStorage.setItem("ats_application_history", JSON.stringify(history));
       
       setShowSaveModal(false);
-      setCompanyName("");
-      alert(`Application for ${newItem.companyName} saved successfully to History!`);
+      alert(`Application "${newItem.entryTitle}" saved successfully to History!`);
     } catch (err) {
       console.error(err);
       const errorVal = err as Error;
@@ -1280,7 +1305,7 @@ ${coldEmailText || "N/A"}
 
                 <div className="flex gap-2 items-center">
                   <button
-                    onClick={() => setShowSaveModal(true)}
+                    onClick={handleOpenSaveModal}
                     className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-medium text-sm transition-colors flex items-center gap-1.5 cursor-pointer shadow-sm"
                   >
                     💾 Save to History
@@ -1444,36 +1469,83 @@ ${coldEmailText || "N/A"}
         )}
       </main>
 
-      {/* Save to History Modal Dialog Overlay */}
+      {/* Save to History Modal Dialog Overlay with Pre-filled Editable Free-Text */}
       {showSaveModal && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50 backdrop-blur-sm animate-fade-in">
-          <div className="bg-white dark:bg-zinc-900 p-6 rounded-3xl max-w-md w-full border border-zinc-200/80 dark:border-zinc-800/80 shadow-2xl flex flex-col gap-4">
-            <h3 className="text-xl font-bold">Save to Application History</h3>
-            <p className="text-xs text-zinc-500 leading-relaxed">
-              Enter the name of the company or organization you are applying to. This will help you track this customized CV and Cover letter in your history dashboard.
-            </p>
-            <input
-              type="text"
-              value={companyName}
-              onChange={(e) => setCompanyName(e.target.value)}
-              className="p-3 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-transparent text-sm outline-none focus:ring-2 focus:ring-emerald-500 w-full"
-              placeholder="e.g. Google, Stripe, SQE"
-              required
-              autoFocus
-            />
-            <div className="flex justify-end gap-3 mt-2">
+          <div className="bg-white dark:bg-zinc-900 p-7 rounded-3xl max-w-lg w-full border border-zinc-200/80 dark:border-zinc-800/80 shadow-2xl flex flex-col gap-5 text-zinc-900 dark:text-zinc-100">
+            <div className="flex items-center justify-between border-b border-zinc-200 dark:border-zinc-800 pb-3">
+              <h3 className="text-lg font-bold">Save to Application History</h3>
               <button
-                onClick={() => { setShowSaveModal(false); setCompanyName(""); }}
-                className="px-4 py-2 text-sm font-semibold rounded-lg text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800 cursor-pointer"
+                type="button"
+                onClick={() => { setShowSaveModal(false); }}
+                className="text-zinc-400 hover:text-white font-bold text-sm cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="flex flex-col gap-1">
+              <label htmlFor="entryTitleInput" className="font-bold text-xs text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">
+                🏷️ Judul Rekap / File Name (Free-Text Input)
+              </label>
+              <input
+                id="entryTitleInput"
+                type="text"
+                value={entryTitle}
+                onChange={(e) => setEntryTitle(e.target.value)}
+                className="p-3 rounded-xl border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-950 font-mono text-xs text-zinc-900 dark:text-zinc-100 outline-none focus:ring-2 focus:ring-emerald-500 w-full"
+                placeholder="Pola: NAMA-COMPANY_ROLE_INFO-LAINNYA_SALARY-RANGE"
+                required
+                autoFocus
+              />
+              <span className="text-[10px] text-zinc-500">
+                💡 <strong>Pola Otomatis:</strong> <code>NAMA-COMPANY_ROLE_INFO-LAINNYA_SALARY-RANGE</code> (Dapat Anda edit &amp; custom sepuasnya).
+              </span>
+            </div>
+
+            <div className="flex flex-col gap-1">
+              <label htmlFor="companyNameInput" className="font-semibold text-xs text-zinc-700 dark:text-zinc-300">
+                🏢 Company / Client Name
+              </label>
+              <input
+                id="companyNameInput"
+                type="text"
+                value={companyName}
+                onChange={(e) => setCompanyName(e.target.value)}
+                className="p-3 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-transparent text-xs text-zinc-900 dark:text-zinc-100 outline-none focus:ring-2 focus:ring-emerald-500 w-full"
+                placeholder="e.g. PT Bukit Asam Tbk, IFG Life"
+              />
+            </div>
+
+            <div className="flex flex-col gap-1">
+              <label htmlFor="salaryRangeInput" className="font-semibold text-xs text-zinc-700 dark:text-zinc-300">
+                💵 Salary Range / Info Tambahan (Opsional)
+              </label>
+              <input
+                id="salaryRangeInput"
+                type="text"
+                value={salaryRange}
+                onChange={(e) => setSalaryRange(e.target.value)}
+                className="p-3 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-transparent text-xs text-zinc-900 dark:text-zinc-100 outline-none focus:ring-2 focus:ring-emerald-500 w-full"
+                placeholder="e.g. IDR 25M - 35M / month, Hybrid"
+              />
+            </div>
+
+            <div className="flex justify-end gap-3 pt-2 border-t border-zinc-200 dark:border-zinc-800">
+              <button
+                type="button"
+                onClick={() => { setShowSaveModal(false); }}
+                className="px-4 py-2 text-xs font-semibold rounded-xl text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800 cursor-pointer"
               >
                 Cancel
               </button>
               <button
+                type="button"
                 onClick={handleSaveToHistory}
-                disabled={!companyName.trim()}
-                className="px-4 py-2 text-sm font-semibold rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white disabled:opacity-50 cursor-pointer"
+                disabled={!entryTitle.trim()}
+                className="px-5 py-2.5 text-xs font-bold rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white disabled:opacity-50 cursor-pointer shadow-md"
               >
-                Save to History
+                💾 Save Entry to History
               </button>
             </div>
           </div>

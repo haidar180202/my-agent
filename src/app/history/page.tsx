@@ -85,9 +85,8 @@ ${item.coldEmailText || "N/A"}
 
   const handleDownloadMarkdown = (item: SavedApplication) => {
     const md = getMarkdownContent(item);
-    const companyClean = (item.companyName || "Company").replace(/[^a-zA-Z0-9_-]/g, "_");
-    const roleClean = (item.targetRole || item.jobTitle || "Role").replace(/[^a-zA-Z0-9_-]/g, "_");
-    const fileName = `${companyClean}_${roleClean}_Recap.md`;
+    const titleClean = (item.entryTitle || `${item.companyName}_${item.targetRole}`).replace(/[^a-zA-Z0-9_-]/g, "_");
+    const fileName = `${titleClean}_Recap.md`;
 
     const blob = new Blob([md], { type: "text/markdown;charset=utf-8" });
     const url = URL.createObjectURL(blob);
@@ -338,7 +337,7 @@ ${item.coldEmailText || "N/A"}
                           <div className="flex flex-col gap-1">
                             <div className="flex justify-between items-start">
                               <h3 className="font-bold text-sm leading-tight text-zinc-900 dark:text-zinc-100">
-                                {item.companyName}
+                                {item.entryTitle || item.companyName}
                               </h3>
                               <span
                                 className={`text-[10px] font-black px-2 py-0.5 rounded-full shrink-0 ${
