@@ -21,10 +21,84 @@ export default function ApplicationHistoryPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [exportingId, setExportingId] = useState<string | null>(null);
 
+  // Live Markdown Preview Modal State (Preview First Workflow)
+  const [previewItem, setPreviewItem] = useState<SavedApplication | null>(null);
+  const [copiedMarkdown, setCopiedMarkdown] = useState(false);
+
   // Edit Notes & Follow-up Modal State
   const [activeEditItem, setActiveEditItem] = useState<SavedApplication | null>(null);
   const [editNotes, setEditNotes] = useState("");
   const [editFollowUpDate, setEditFollowUpDate] = useState("");
+
+  const getMarkdownContent = (item: SavedApplication): string => {
+    if (item.markdownSummary) return item.markdownSummary;
+
+    const comp = item.companyName || "Target Company";
+    const role = item.targetRole || item.jobTitle || "Technical Role";
+    const dateStr = item.timestamp
+      ? new Date(item.timestamp).toLocaleDateString("id-ID", { year: "numeric", month: "long", day: "numeric" })
+      : new Date().toLocaleDateString("id-ID", { year: "numeric", month: "long", day: "numeric" });
+    const portfolioUrl = item.selectedPortfolioUrl || (JSON.stringify(item.tailoredResume || "").includes("electrical") ? "https://profile-mhaidarshahab-electrical.netlify.app/" : "https://haidarshahab.vercel.app/");
+
+    const summaryText = (item.tailoredResume?.summary as string) || "";
+    const highlights = (item.tailoredResume?.keyHighlights as string[]) || [];
+
+    return `# 📄 Application Recap — ${comp}
+**Target Role**: ${role}  
+**Date**: ${dateStr}  
+**ATS Match Score**: ${item.matchScore ? `${item.matchScore}% (High Relevance)` : "N/A"}  
+**Portfolio Link**: ${portfolioUrl}  
+
+---
+
+## 🎯 AI Strategy & Gap Analysis
+* **Core Strategy**: Active relevance bridging tailoring executed.
+* **Years of Experience Claimed**: ~5 years
+* **Emphasized Technical Keywords**: ${(item.missingKeywords || []).map(k => `\`${k}\``).join(", ") || "Key technical skills aligned"}
+
+---
+
+## 👤 Tailored Resume Data
+### Executive Summary
+${summaryText}
+
+${highlights.length > 0 ? `### Key Professional Highlights\n${highlights.map(h => `- ${h}`).join("\n")}` : ""}
+
+---
+
+## ✉️ Tailored Cover Letter
+${item.coverLetterText || "N/A"}
+
+---
+
+## 📧 Recruiter Cold Email Outreach
+${item.coldEmailText || "N/A"}
+`;
+  };
+
+  const handleCopyMarkdown = (item: SavedApplication) => {
+    const md = getMarkdownContent(item);
+    navigator.clipboard.writeText(md);
+    setCopiedMarkdown(true);
+    setTimeout(() => setCopiedMarkdown(false), 2000);
+  };
+
+  const handleDownloadMarkdown = (item: SavedApplication) => {
+    const md = getMarkdownContent(item);
+    const companyClean = (item.companyName || "Company").replace(/[^a-zA-Z0-9_-]/g, "_");
+    const roleClean = (item.targetRole || item.jobTitle || "Role").replace(/[^a-zA-Z0-9_-]/g, "_");
+    const fileName = `${companyClean}_${roleClean}_Recap.md`;
+
+    const blob = new Blob([md], { type: "text/markdown;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = fileName;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
 
   // Load and migrate saved applications from localStorage
   useEffect(() => {
@@ -314,6 +388,15 @@ export default function ApplicationHistoryPage() {
                           <div className="flex items-center justify-between border-t border-zinc-100 dark:border-zinc-800/80 pt-2 text-xs">
                             <button
                               type="button"
+                              onClick={() => setPreviewItem(item)}
+                              className="text-emerald-600 dark:text-emerald-400 hover:underline font-extrabold text-[11px] cursor-pointer"
+                              title="Live Preview Markdown Rekap FIRST"
+                            >
+                              👁️ Preview
+                            </button>
+
+                            <button
+                              type="button"
                               onClick={() => handleExportZip(item)}
                               disabled={exportingId === item.id}
                               className="text-amber-600 dark:text-amber-400 hover:underline font-bold text-[11px] cursor-pointer"
@@ -488,6 +571,69 @@ export default function ApplicationHistoryPage() {
                 className="px-5 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs cursor-pointer shadow-md"
               >
                 Save Notes & Changes
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* LIVE MARKDOWN PREVIEW MODAL (PREVIEW FIRST WORKFLOW) */}
+      {previewItem && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in">
+          <div className="flex flex-col gap-4 w-full max-w-3xl max-h-[85vh] p-6 rounded-3xl bg-zinc-900 border border-emerald-500/50 shadow-2xl text-zinc-100 overflow-hidden">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between border-b border-zinc-800 pb-3">
+              <div className="flex items-center gap-2">
+                <span className="text-xl">👁️</span>
+                <div>
+                  <h3 className="text-base font-extrabold text-emerald-400">
+                    Live Markdown Preview — {previewItem.companyName}
+                  </h3>
+                  <p className="text-xs text-zinc-400 font-medium">
+                    {previewItem.targetRole || previewItem.jobTitle} • {previewItem.matchScore}% ATS Score
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setPreviewItem(null)}
+                className="px-3 py-1.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-xs font-bold cursor-pointer transition-colors"
+              >
+                ✕ Close
+              </button>
+            </div>
+
+            {/* Portfolio Domain Badge */}
+            <div className="flex items-center justify-between bg-zinc-950 p-3 rounded-2xl border border-zinc-800 text-xs">
+              <span className="text-zinc-400 font-medium">Auto-Selected Portfolio Link:</span>
+              <span className="font-mono font-bold text-blue-400">
+                {previewItem.selectedPortfolioUrl ||
+                  (JSON.stringify(previewItem.tailoredResume || "").includes("electrical")
+                    ? "https://profile-mhaidarshahab-electrical.netlify.app/ (Elektro)"
+                    : "https://haidarshahab.vercel.app/ (IT)")}
+              </span>
+            </div>
+
+            {/* Scrollable Markdown Document Preview */}
+            <div className="flex-1 overflow-y-auto p-5 rounded-2xl bg-zinc-950 border border-zinc-800 text-xs font-mono text-zinc-300 leading-relaxed whitespace-pre-wrap selection:bg-emerald-900 selection:text-white">
+              {getMarkdownContent(previewItem)}
+            </div>
+
+            {/* Action Bar inside Preview Modal */}
+            <div className="flex flex-wrap items-center justify-end gap-3 pt-2 border-t border-zinc-800">
+              <button
+                type="button"
+                onClick={() => handleCopyMarkdown(previewItem)}
+                className="px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs cursor-pointer shadow-md transition-all flex items-center gap-1.5"
+              >
+                {copiedMarkdown ? "✅ Copied Markdown!" : "📋 1-Click Copy Markdown"}
+              </button>
+              <button
+                type="button"
+                onClick={() => handleDownloadMarkdown(previewItem)}
+                className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-xs cursor-pointer shadow-md transition-all flex items-center gap-1.5"
+              >
+                📥 Download .md File
               </button>
             </div>
           </div>

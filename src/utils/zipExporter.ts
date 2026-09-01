@@ -2,20 +2,24 @@ import JSZip from "jszip";
 
 export interface SavedApplication {
   id: string;
-  jobTitle: string;
+  jobTitle?: string;
   companyName: string;
   targetRole: string;
-  dateSaved: string;
+  dateSaved?: string;
+  timestamp?: string;
   matchScore: number;
   missingKeywords?: string[];
-  coverLetterText: string;
-  tailoredResume: Record<string, unknown>;
+  coverLetterText?: string;
+  coldEmailText?: string;
+  tailoredResume?: Record<string, unknown>;
   cvPdfDataUri?: string;
   coverLetterPdfDataUri?: string;
   status?: "Draft" | "Applied" | "Screening" | "Interviewing" | "Offer" | "Archived";
   followUpDate?: string;
   notes?: string;
   updatedAt?: string;
+  selectedPortfolioUrl?: string;
+  markdownSummary?: string;
 }
 
 // Convert Base64 Data URI to ArrayBuffer for JSZip

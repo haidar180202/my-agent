@@ -6,7 +6,18 @@ Dokumen ini mencatat seluruh riwayat pengembangan, perbaikan bug, dan penambahan
 
 ## 📅 2026-09-01 (Selasa)
 
-### 🚀 Push #2 (`12e798f`) — Repository `my-agent` — 12:01 WIB
+### 🚀 Push #3 (Pending Push to main) — Repository `my-agent` — 21:02 WIB
+* **Judul & Fitur**: Live Markdown Preview First Workflow, Application History Backlog Integration, 1-Click Copy & Download (.md).
+* **Commit Target**: `main` (`my-agent`)
+* **File Diubah**: `src/app/history/page.tsx`, `src/app/ats-generate/page.tsx`, `src/utils/zipExporter.ts`, `docs/logs/DAILY_LOG.md`
+* **Penjelasan & Dampak**:
+  * **Penyimpanan Rekap Markdown Otomatis**: Saat pengguna mengeklik *Save to History* di generator CV, sistem memformat seluruh data lamaran (Info Perusahaan, Role, Tanggal, ATS Match Score %, Link Portofolio Elektro/IT yang disetujui, Strategi AI, Tailored Resume, Cover Letter, dan Cold Email) menjadi dokumen Markdown terstruktur (`.md`).
+  * **Modal Live Preview Terlebih Dahulu (Preview First)**: Di menu *Application History (`/history`)*, mengeklik kartu riwayat atau tombol *👁️ Preview* akan **langsung membuka Modal Live Preview Terlebih Dahulu**. Pengguna dapat meninjau riwayat historis secara utuh dengan nyaman di layar tanpa harus mengunduh file.
+  * **Aksi Akomodatif di Dalam Modal**: Menyediakan tombol *📋 1-Click Copy Markdown* untuk Notion/Obsidian dan tombol *📥 Download .md File* di dalam modal preview.
+
+---
+
+### 🚀 Push #2 (`20f3b45`) — Repository `my-agent` — 12:01 WIB
 * **Judul & Fitur**: Pre-Generation Gemini Domain Classifier, Directive #13 Portfolio Auto-Selection, & Candidate Approval Gate Modal.
 * **Commit Target**: `main` (`my-agent`)
 * **File Diubah**: `src/app/api/generate-ats/route.ts`, `src/app/ats-generate/page.tsx`, `docs/logs/DAILY_LOG.md`
@@ -42,60 +53,3 @@ Dokumen ini mencatat seluruh riwayat pengembangan, perbaikan bug, dan penambahan
   * **Pemahaman Instan**: Pertanyaan bahasa Inggris dari pewawancara/klien dilengkapi terjemahan & penjelasan maksud 1-2 kalimat dalam Bahasa Indonesia.
   * **Asisten Audio Klien 100% Utuh**: Fitur `🎙️ Listen Audio [Alt+L]` merekam ucapan klien dan men-translate maksudnya secara langsung.
   * **Bebas Jeda Waktu**: Memori sesi bertahan selama panggilan berlangsung tanpa batas 1 jam sampai tombol *Selesai* diklik.
-
----
-
-### 🚀 Push #6 (`fb834ea`) — 21:08 WIB
-* **Judul & Fitur**: Stateful Conversation Memory Stack, Directive #12 Anti-Contradiction Guardrails, and 1-Hour Full Session Recap Engine.
-* **Commit ID**: `fb834ea`
-* **File Diubah**: `src/app/api/copilot/route.ts`, `src/app/copilot/page.tsx`
-* **Penjelasan & Dampak**:
-  * Menjaga konteks percakapan berantai (A ➔ A.1 ➔ A.B) sehingga AI tidak pernah mengalami *blanking* atau bingung topik induk.
-  * Menerapkan mandat `Directive #12` di mana semua klaim/jawaban sebelumnya terkunci sebagai kebenaran mutlak (dilarang kontradiktif di turn berikutnya).
-
----
-
-### 🚀 Push #5 (`bc30d26`) — 21:00 WIB
-* **Judul & Fitur**: Bypass Online npm Download Stalls by Detecting Local Electron Binary and MS Edge Native App Mode Fallback.
-* **Commit ID**: `bc30d26`
-* **File Diubah**: `run_copilot.bat`, `public/downloads/run_copilot.bat`
-* **Penjelasan & Dampak**:
-  * Memperbaiki kendala unduhan `npx electron` yang macet 3000+ detik akibat jaringan ISP Indonesia membatasi download dari GitHub Releases.
-  * Mendeteksi `node_modules\electron\dist\electron.exe` lokal untuk membuka aplikasi dalam **0.1 detik instan tanpa download**.
-  * Menyediakan fallback mode borderless MS Edge App Native (`msedge.exe --app=...`) untuk komputer tanpa Node.js.
-
----
-
-### 🚀 Push #4 (`2de9cdb`) — 20:30 WIB
-* **Judul & Fitur**: Direct Web Download for `run_copilot.bat` and Transparent GitHub Release Installer Link.
-* **Commit ID**: `2de9cdb`
-* **File Diubah**: `public/downloads/run_copilot.bat`, `src/app/copilot/page.tsx`
-* **Penjelasan & Dampak**:
-  * Pengunjung di web portal Vercel dapat mengunduh file `run_copilot.bat` secara 1-klik langsung dari server CDN Vercel (`/downloads/run_copilot.bat`).
-
----
-
-### 🚀 Push #3 (`9f6f56b`) — 20:23 WIB
-* **Judul & Fitur**: Update Desktop App and Launcher Script to Target Live Vercel Production URL (`https://my-agent-mauve-omega.vercel.app/`).
-* **Commit ID**: `9f6f56b`
-* **File Diubah**: `electron/main.js`, `run_copilot.bat`
-* **Penjelasan & Dampak**:
-  * Jendela desktop tidak lagi membutuhkan server dev `localhost:3000`, melainkan langsung terkoneksi ke cloud serverless Vercel Production.
-
----
-
-### 🚀 Push #2 (`0687cd6`) — 20:15 WIB
-* **Judul & Fitur**: Cross-Platform IPC `switch-agent-engine` Router and Multi-Agent Workspace Engine Switcher Bar.
-* **Commit ID**: `0687cd6`
-* **File Diubah**: `electron/main.js`, `src/app/copilot/page.tsx`
-* **Penjelasan & Dampak**:
-  * Menambahkan dropdown navigasi 1-klik untuk berpindah di antara seluruh 9 engine AI workspace (`/copilot`, `/ats-generate`, `/master-cv`, `/ai-interview`, `/interview-prep`, `/pitch-builder`, `/video-pipeline`, `/history`).
-
----
-
-### 🚀 Push #1 (`23879e5`) — 20:12 WIB
-* **Judul & Fitur**: Upgrade Electron Desktop App to Stealth Overlay with `setContentProtection(true)` Anti-Screen-Capture.
-* **Commit ID**: `23879e5`
-* **File Diubah**: `electron/main.js`, `run_copilot.bat`, `src/app/copilot/page.tsx`
-* **Penjelasan & Dampak**:
-  * Mengaktifkan fitur OS-level protection di mana jendela Copilot terlihat jelas di mata Anda, tetapi **100% transparan/ghoib saat ditangkap oleh Google Meet, Zoom, MS Teams, maupun OBS screen share**.

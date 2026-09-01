@@ -31,6 +31,7 @@ interface Project {
 interface TailoredResume {
   personalInfo?: PersonalInfo;
   summary?: string;
+  keyHighlights?: string[];
   experience?: Experience[];
   projects?: Project[];
   skills?: string[];
@@ -336,9 +337,54 @@ export default function AtsGeneratePage() {
     if (!companyName.trim()) return;
     
     try {
-      const historyRaw = localStorage.getItem("my-agent-history");
+      const historyRaw = localStorage.getItem("my-agent-history") || localStorage.getItem("ats_application_history");
       const history = historyRaw ? JSON.parse(historyRaw) : [];
       
+      const portfolioUrl = selectedPortfolioUrl || (JSON.stringify(tailoredResume || "").includes("electrical")
+        ? "https://profile-mhaidarshahab-electrical.netlify.app/"
+        : "https://haidarshahab.vercel.app/");
+
+      const summaryText = tailoredResume?.summary || "";
+      const highlights = tailoredResume?.keyHighlights || [];
+      const experiences = tailoredResume?.experience || [];
+      const projects = tailoredResume?.projects || [];
+
+      const markdownSummary = `# 📄 Application Recap — ${companyName.trim()}
+**Target Role**: ${targetRole}  
+**Date**: ${new Date().toLocaleDateString("id-ID", { year: "numeric", month: "long", day: "numeric" })}  
+**ATS Match Score**: ${matchScore ? `${matchScore}% (High Relevance)` : "N/A"}  
+**Portfolio Link**: ${portfolioUrl}  
+
+---
+
+## 🎯 AI Strategy & Gap Analysis
+* **Core Strategy**: ${tailoringPlan?.coreStrategy || "Active relevance bridging tailoring executed."}
+* **Years of Experience Claimed**: ${tailoringPlan?.yearsOfExperienceClaim || "~5 years"}
+* **Emphasized Technical Keywords**: ${(missingKeywords || []).map(k => `\`${k}\``).join(", ") || "Key technical skills aligned"}
+
+---
+
+## 👤 Tailored Resume Data
+### Executive Summary
+${summaryText}
+
+${highlights.length > 0 ? `### Key Professional Highlights\n${highlights.map(h => `- ${h}`).join("\n")}` : ""}
+
+${experiences.length > 0 ? `### Work Experience\n${experiences.map(e => `#### ${e.company || ""} — ${e.role || ""} (${e.date || ""})\n${(e.bullets || e.highlights || []).map(b => `- ${b}`).join("\n")}`).join("\n\n")}` : ""}
+
+${projects.length > 0 ? `### Featured Projects\n${projects.map(p => `#### ${p.name || ""} (${p.date || ""})\n${(p.bullets || p.highlights || []).map(b => `- ${b}`).join("\n")}`).join("\n\n")}` : ""}
+
+---
+
+## ✉️ Tailored Cover Letter
+${coverLetterText || "N/A"}
+
+---
+
+## 📧 Recruiter Cold Email Outreach
+${coldEmailText || "N/A"}
+`;
+
       const newItem = {
         id: Date.now().toString(),
         timestamp: new Date().toISOString(),
@@ -349,11 +395,16 @@ export default function AtsGeneratePage() {
         jobDescription,
         tailoredResume,
         coverLetterText,
-        missingKeywords
+        coldEmailText,
+        missingKeywords,
+        selectedPortfolioUrl: portfolioUrl,
+        tailoringPlan,
+        markdownSummary,
       };
       
       history.unshift(newItem);
       localStorage.setItem("my-agent-history", JSON.stringify(history));
+      localStorage.setItem("ats_application_history", JSON.stringify(history));
       
       setShowSaveModal(false);
       setCompanyName("");
