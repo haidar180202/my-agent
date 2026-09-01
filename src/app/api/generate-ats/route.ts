@@ -478,15 +478,68 @@ export async function POST(req: Request) {
       theme,
       tailoredResume,
       coverLetterText,
+      approvedPortfolioUrl,
     } = body;
 
     if (!action) {
       return NextResponse.json(
         {
-          error: "Action parameter (generate-text or generate-pdf) is required",
+          error: "Action parameter (classify-domain, generate-text or generate-pdf) is required",
         },
         { status: 400 },
       );
+    }
+
+    // Action: Classify Domain & Portfolio Rationale (Pre-Check Stage)
+    if (action === "classify-domain") {
+      const classifyPrompt = `You are an expert AI Career Architect.
+Analyze the target Job Description and Target Role below:
+
+TARGET ROLE: ${targetRole}
+JOB DESCRIPTION:
+${jobDescription}
+
+Determine which candidate portfolio URL and background narrative is the best fit:
+
+Option A: ELECTRICAL & INDUSTRIAL ENGINEERING DOMAIN
+- PORTFOLIO URL: "https://profile-mhaidarshahab-electrical.netlify.app/"
+- APPLIES TO: Job Descriptions relating to Electrical Engineering, Instrumentation, Control Systems, Mechanical, Hardware, Energy, Mining, Plant Operations, SCADA, PLC, or Automation.
+- CANDIDATE NARRATIVE: Formal Bachelor of Electrical Engineering (S1 Teknik Elektro, GPA > 3.5), BUMN industrial operations monitoring (PT Bukit Asam Tbk CISEA v2.0.0 & PT Pupuk Sriwidjaja PLC safety interlocks), Google Project Management & Kemnaker RI Scrum Master certifications.
+
+Option B: IT & SOFTWARE ENGINEERING DOMAIN
+- PORTFOLIO URL: "https://haidarshahab.vercel.app/"
+- APPLIES TO: Job Descriptions relating to IT, Software Engineering, Full-Stack, Frontend, Backend, React, Next.js, Node.js, Web Development, Mobile App, or FinTech.
+- CANDIDATE NARRATIVE: Senior Full-Stack Software Engineer & Lead Systems Architect (TypeScript, React, Next.js, Node.js, NestJS, Laravel, Java Quarkus).
+
+Return ONLY raw JSON with no markdown formatting:
+{
+  "recommendedDomain": "electrical" or "software",
+  "recommendedPortfolioUrl": "https://profile-mhaidarshahab-electrical.netlify.app/" or "https://haidarshahab.vercel.app/",
+  "domainTitle": "Electrical & Industrial Engineering Domain" or "Software Engineering & IT Domain",
+  "rationale": "Penjelasan teknis 1-2 kalimat dalam Bahasa Indonesia mengapa portofolio ini paling tepat untuk lowongan ini."
+}`;
+
+      try {
+        const response = await ai.models.generateContent({
+          model: "gemini-2.5-flash",
+          contents: [{ role: "user", parts: [{ text: classifyPrompt }] }],
+        });
+
+        const cleanJson = (response.text || "").replace(/```json/g, "").replace(/```/g, "").trim();
+        const classification = JSON.parse(cleanJson);
+        return NextResponse.json({ success: true, classification });
+      } catch (err) {
+        console.error("Domain classification failed:", err);
+        return NextResponse.json({
+          success: true,
+          classification: {
+            recommendedDomain: "software",
+            recommendedPortfolioUrl: "https://haidarshahab.vercel.app/",
+            domainTitle: "Software Engineering & IT Domain",
+            rationale: "Default diset ke Portofolio Software Engineering.",
+          },
+        });
+      }
     }
 
     // Phase 1: Decrypt Master CV and Tailor using Gemini
@@ -611,6 +664,15 @@ GOLDEN RULES FOR DOCUMENT CUSTOMIZATION (MUST OBEY STRICTLY):
     - Carefully analyze the Job Description and Target Role text to extract the hiring company or client name (e.g. "IFG", "PT Bukit Asam Tbk", "Pupuk Sriwidjaja", "Pertamina", "DevManpower", "Google", etc.).
     - If a company name is identified, return it in the "companyName" field as a clean, concise string (e.g. "PT Bukit Asam Tbk" or "DevManpower").
     - If NO company name is mentioned in the job description, return an empty string "" for "companyName".
+
+12. DYNAMIC PORTFOLIO URL & NARRATIVE AUTO-SELECTION MANDATE (DIRECTIVE #13):
+    - Approved Target Portfolio URL: "${approvedPortfolioUrl || "Auto-detect"}"
+    - IF Approved Portfolio URL is "https://profile-mhaidarshahab-electrical.netlify.app/" OR Job Description relates to Electrical Engineering, Instrumentation, Control Systems, Mechanical, Hardware, Energy, Mining, Plant Operations, SCADA, or PLC:
+      * Set personalInfo.portfolio = "https://profile-mhaidarshahab-electrical.netlify.app/"
+      * FRAME CANDIDATE SUMMARY & HIGHLIGHTS around formal Bachelor of Electrical Engineering (S1 Teknik Elektro, GPA > 3.5), BUMN industrial operations monitoring (PT Bukit Asam Tbk CISEA v2.0.0 Super-App handling 100+ modules & PT Pupuk Sriwidjaja PLC safety interlocks), Google Project Management & Kemnaker RI Scrum Master certifications.
+    - IF Approved Portfolio URL is "https://haidarshahab.vercel.app/" OR Job Description relates to IT, Software Engineering, Full-Stack, Frontend, Backend, Web/Mobile Apps, or FinTech:
+      * Set personalInfo.portfolio = "https://haidarshahab.vercel.app/"
+      * FRAME CANDIDATE SUMMARY & HIGHLIGHTS around Senior Full-Stack Software Engineer & Lead Systems Architect (TypeScript, React, Next.js, Node.js, NestJS, Laravel, Java Quarkus + BPMN Workflow).
 
 TARGET ROLE: ${targetRole}
 JOB DESCRIPTION:

@@ -6,6 +6,17 @@ Dokumen ini mencatat seluruh riwayat pengembangan, perbaikan bug, dan penambahan
 
 ## 📅 2026-09-01 (Selasa)
 
+### 🚀 Push #2 (`12e798f`) — Repository `my-agent` — 12:01 WIB
+* **Judul & Fitur**: Pre-Generation Gemini Domain Classifier, Directive #13 Portfolio Auto-Selection, & Candidate Approval Gate Modal.
+* **Commit Target**: `main` (`my-agent`)
+* **File Diubah**: `src/app/api/generate-ats/route.ts`, `src/app/ats-generate/page.tsx`, `docs/logs/DAILY_LOG.md`
+* **Penjelasan & Dampak**:
+  * **Analisis & Alasan Otomatis Gemini (`classify-domain`)**: AI Gemini menganalisis JD secara *pre-check* untuk merekomendasikan apakah URL `https://profile-mhaidarshahab-electrical.netlify.app/` (Elektro) atau `https://haidarshahab.vercel.app/` (IT) yang paling pas + memberikan alasan teknis 1-2 kalimat dalam Bahasa Indonesia.
+  * **Modal Konfirmasi & Approval Candidate**: Menampilkan modal konfirmasi interaktif di mana pengguna melihat rekomendasi & alasan Gemini, serta dapat mengeklik tombol *"✅ Oke, Setuju & Lanjutkan Generate PDF"* atau tombol *"🔄 Switch Portofolio"* sebelum PDF benar-benar diproses.
+  * **Penerapan Mandat Directive #13**: Jika domain Elektro disetujui, CV & Cover Letter dibingkai dengan gelar formal S1 Teknik Elektro, CISEA v2.0.0 Super-App PT Bukit Asam Tbk, dan interlock PLC PT Pupuk Sriwidjaja. Jika domain IT disetujui, CV dibingkai dengan Senior Full-Stack Software Engineer & Lead Systems Architect.
+
+---
+
 ### 🚀 Push #1 (`8fcd8b1`) — Repository `profile` — 11:45 WIB
 * **Judul & Fitur**: Sync Latest Portfolio Data, Components, and My Agent AI Suite to `electrical-engineer` Branch while Preserving Electrical Engineering Narrative for Home and About.
 * **Commit ID**: `8fcd8b1` (Pushed to `origin/electrical-engineer` in `https://github.com/haidar180202/profile.git`)
@@ -19,7 +30,7 @@ Dokumen ini mencatat seluruh riwayat pengembangan, perbaikan bug, dan penambahan
 
 ## 📅 2026-08-31 (Senin)
 
-### 🚀 Push #7 (`1564f9e` / `317554e`) — 21:35 WIB
+### 🚀 Push #7 (`1564f9e` / `317554e` / `40feb5c`) — 21:35 WIB
 * **Judul & Fitur**: Multi-Key API Load Balancer, Question Translation & Intent Explanation, Unlimited Session Memory, End Meeting Recap & Client Audio Protection.
 * **Commit Target**: `main` (`my-agent`)
 * **File Diubah**:

@@ -75,6 +75,16 @@ export default function AtsGeneratePage() {
   } | null>(null);
   const [showMisalignmentModal, setShowMisalignmentModal] = useState(false);
 
+  // Portfolio Domain Pre-Check State
+  const [domainClassification, setDomainClassification] = useState<{
+    recommendedDomain: "electrical" | "software";
+    recommendedPortfolioUrl: string;
+    domainTitle: string;
+    rationale: string;
+  } | null>(null);
+  const [showDomainModal, setShowDomainModal] = useState(false);
+  const [selectedPortfolioUrl, setSelectedPortfolioUrl] = useState("");
+
   // Screening Question Assistant State
   const [screeningQuestion, setScreeningQuestion] = useState("");
   const [screeningAnswer, setScreeningAnswer] = useState("");
@@ -121,13 +131,55 @@ export default function AtsGeneratePage() {
     }
   }, []);
 
-  // Step 1: Request tailored text from Gemini
-  const handleGenerateText = async (e: React.FormEvent) => {
-    e.preventDefault();
+  // Step 1: Pre-check Domain Classification, then show Approval Modal
+  const handleStartStrategy = async () => {
+    if (!jobDescription.trim() || !targetRole.trim() || !password.trim()) {
+      setError("Please fill in Job Description, Target Role, and Decryption Password.");
+      return;
+    }
+
     setLoading(true);
     setError("");
-    setResult(null);
-    setStatus("Analyzing Job Description & Tailoring Resume...");
+    setStatus("Analyzing Job Description for Domain Classification...");
+
+    try {
+      const res = await fetch("/api/generate-ats", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "classify-domain",
+          jobDescription,
+          targetRole,
+        }),
+      });
+
+      if (!res.ok) {
+        throw new Error("Failed to classify domain");
+      }
+
+      const data = await res.json();
+      if (data.classification) {
+        setDomainClassification(data.classification);
+        setSelectedPortfolioUrl(data.classification.recommendedPortfolioUrl);
+        setShowDomainModal(true);
+      } else {
+        await handleExecuteGenerateText("https://haidarshahab.vercel.app/");
+      }
+    } catch (err) {
+      console.error(err);
+      await handleExecuteGenerateText("https://haidarshahab.vercel.app/");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Step 1.5: Candidate Approved Execution to Generate Text & Resume JSON
+  const handleExecuteGenerateText = async (approvedUrl: string) => {
+    setShowDomainModal(false);
+    setSelectedPortfolioUrl(approvedUrl);
+    setLoading(true);
+    setError("");
+    setStatus(`Tailoring Resume with Portfolio (${approvedUrl})...`);
 
     try {
       const res = await fetch("/api/generate-ats", {
@@ -138,6 +190,7 @@ export default function AtsGeneratePage() {
           jobDescription,
           targetRole,
           password,
+          approvedPortfolioUrl: approvedUrl,
         }),
       });
 
@@ -473,7 +526,7 @@ export default function AtsGeneratePage() {
               </p>
             </header>
 
-            <form onSubmit={handleGenerateText} className="flex flex-col gap-6 bg-white dark:bg-zinc-900 p-8 rounded-2xl shadow-sm border border-zinc-200 dark:border-zinc-800">
+            <form onSubmit={(e) => { e.preventDefault(); handleStartStrategy(); }} className="flex flex-col gap-6 bg-white dark:bg-zinc-900 p-8 rounded-2xl shadow-sm border border-zinc-200 dark:border-zinc-800">
               <div className="flex flex-col gap-2">
                 <label htmlFor="password" className="font-medium text-sm">Decryption Password</label>
                 <input
@@ -1375,6 +1428,59 @@ export default function AtsGeneratePage() {
           </div>
         </div>
       )}
+      {/* PORTFOLIO DOMAIN PRE-CHECK & APPROVAL CONFIRMATION MODAL */}
+      {showDomainModal && domainClassification && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-md animate-fade-in">
+          <div className="flex flex-col gap-5 w-full max-w-lg p-7 rounded-3xl bg-white dark:bg-zinc-900 border border-emerald-500/50 shadow-2xl text-zinc-900 dark:text-zinc-100">
+            <div className="flex items-center justify-between border-b border-zinc-200 dark:border-zinc-800 pb-3">
+              <div className="flex items-center gap-2">
+                <span className="text-xl">🎯</span>
+                <h3 className="text-base font-extrabold text-emerald-600 dark:text-emerald-400">Rekomendasi Portofolio AI Gemini</h3>
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-3 p-4 rounded-2xl bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-black uppercase tracking-wider text-emerald-600 dark:text-emerald-400">Target Domain &amp; Portfolio URL</span>
+                <span className="px-2.5 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800 text-[10px] font-bold">
+                  {domainClassification.domainTitle}
+                </span>
+              </div>
+              <p className="text-xs font-mono font-bold text-blue-600 dark:text-blue-400 underline break-all">
+                {selectedPortfolioUrl || domainClassification.recommendedPortfolioUrl}
+              </p>
+              <div className="p-3 rounded-xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800/80 text-xs text-zinc-700 dark:text-zinc-300 leading-relaxed font-medium">
+                💡 <strong>Alasan Rekomendasi Gemini:</strong>
+                <p className="mt-1 text-zinc-600 dark:text-zinc-400">{domainClassification.rationale}</p>
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => handleExecuteGenerateText(selectedPortfolioUrl || domainClassification.recommendedPortfolioUrl)}
+                className="w-full py-3 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-extrabold text-xs shadow-lg transition-all cursor-pointer flex items-center justify-center gap-2"
+              >
+                <span>✅ Oke, Setuju &amp; Lanjutkan Generate PDF</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  const altUrl = selectedPortfolioUrl.includes("electrical")
+                    ? "https://haidarshahab.vercel.app/"
+                    : "https://profile-mhaidarshahab-electrical.netlify.app/";
+                  setSelectedPortfolioUrl(altUrl);
+                }}
+                className="w-full py-2.5 rounded-xl bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-white font-bold text-xs transition-colors cursor-pointer flex items-center justify-center gap-2"
+              >
+                <span>🔄 Switch ke: {selectedPortfolioUrl.includes("electrical") ? "haidarshahab.vercel.app (IT)" : "profile-mhaidarshahab-electrical.netlify.app (Elektro)"}</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Misalignment Confirmation Modal */}
       {showMisalignmentModal && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50 backdrop-blur-sm animate-fade-in">
