@@ -6,7 +6,20 @@ Dokumen ini mencatat seluruh riwayat pengembangan, perbaikan bug, dan penambahan
 
 ## 📅 2026-09-01 (Selasa)
 
-### 🚀 Push #4 (Pending Push to main) — Repository `my-agent` — 21:18 WIB
+### 🚀 Push #5 (Pending Push to main) — Repository `my-agent` — 21:40 WIB
+* **Judul & Fitur**: Minimalist Glassmorphism Kanban Card Redesign, Zero ATS Overflow Fix, 3-Dot Quick Options Menu, & Horizontal Scroll Container.
+* **Commit Target**: `main` (`my-agent`)
+* **File Diubah**: `src/app/history/page.tsx`, `docs/logs/DAILY_LOG.md`
+* **Penjelasan & Dampak**:
+  * **Perbaikan Total ATS Badge Overflow (0% Overflow Guarantee)**: Memperbaiki bug di mana badge `92% ATS` meluap ke luar garis border kanan kartu. Mengunci badge di dalam flex header dengan `shrink-0 min-w-0 truncate` sehingga 100% aman dan rapi di dalam padding kartu.
+  * **Eliminasi Noise & Dropdown Redundan**: Menghapus dropdown `Stage: Applied` berulang dari dalam kartu untuk memberikan ruang visual bernapas (*breathing room*).
+  * **Kartu Minimalis Glassmorphism (3 Baris Bersih)**: Kartu kini menampilkan avatar perusahaan (`🏢`), judul/nama perusahaan terpotong 1 baris, sub-baris role + gaji, dan badge portofolio domain (`⚡ Elektro` / `💻 IT`).
+  * **Toolbar Ringkas: 1 Main Button + Menu 3-Titik (`⋯`)**: Disediakan tombol menonjol `[ 👁️ Preview Detail ]` untuk membuka Modal Rekap Markdown, serta menu 3-titik (`⋯`) yang menyembunyikan opsi sekunder (ZIP Export, Notes, Load in Generator, Pindah Stage, Hapus) agar UI kartu tetap 100% bersih, elegan, dan profesional.
+  * **Kontainer Kolom Kanban Smooth Horizontal Scroll**: Menambahkan horizontal flex container pada papan Kanban dengan min-width kolom konsisten (`w-[320px] shrink-0`), mencegah kolom terhimpit di layar kecil.
+
+---
+
+### 🚀 Push #4 (`2061097`) — Repository `my-agent` — 21:18 WIB
 * **Judul & Fitur**: Editable Free-Text Save Title Template (`NAMA-COMPANY_ROLE_INFO-LAINNYA_SALARY-RANGE`) & Dynamic Salary Range Extraction.
 * **Commit Target**: `main` (`my-agent`)
 * **File Diubah**: `src/app/ats-generate/page.tsx`, `src/app/history/page.tsx`, `src/utils/zipExporter.ts`, `docs/logs/DAILY_LOG.md`

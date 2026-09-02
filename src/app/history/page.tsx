@@ -20,6 +20,7 @@ export default function ApplicationHistoryPage() {
   const [viewMode, setViewMode] = useState<"kanban" | "list">("kanban");
   const [searchQuery, setSearchQuery] = useState("");
   const [exportingId, setExportingId] = useState<string | null>(null);
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
 
   // Live Markdown Preview Modal State (Preview First Workflow)
   const [previewItem, setPreviewItem] = useState<SavedApplication | null>(null);
@@ -299,16 +300,16 @@ ${item.coldEmailText || "N/A"}
           />
         </div>
 
-        {/* KANBAN BOARD VIEW */}
+        {/* KANBAN BOARD VIEW (SLEEK GLASSMORPHISM & HORIZONTAL SCROLL) */}
         {viewMode === "kanban" && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 items-start overflow-x-auto pb-6">
+          <div className="flex gap-4 items-start overflow-x-auto pb-6 pt-1 scrollbar-thin scrollbar-thumb-zinc-700 scrollbar-track-transparent">
             {PIPELINE_STAGES.map((stage) => {
               const stageItems = filteredHistory.filter((item) => (item.status || "Applied") === stage.id);
 
               return (
                 <div
                   key={stage.id}
-                  className={`flex flex-col gap-3 p-4 rounded-3xl border backdrop-blur-md min-h-[450px] ${stage.color}`}
+                  className={`flex flex-col gap-3 p-4 rounded-3xl border backdrop-blur-md min-h-[480px] w-[320px] shrink-0 ${stage.color}`}
                 >
                   {/* Column Header */}
                   <div className="flex items-center justify-between border-b border-zinc-200/60 dark:border-zinc-800/60 pb-3">
@@ -316,7 +317,7 @@ ${item.coldEmailText || "N/A"}
                       <span>{stage.icon}</span>
                       <span>{stage.label}</span>
                     </div>
-                    <span className="px-2 py-0.5 rounded-full bg-zinc-200 dark:bg-zinc-800 text-[10px] font-bold text-zinc-600 dark:text-zinc-400">
+                    <span className="px-2.5 py-0.5 rounded-full bg-zinc-200/80 dark:bg-zinc-800 text-[10px] font-black text-zinc-700 dark:text-zinc-300">
                       {stageItems.length}
                     </span>
                   </div>
@@ -328,111 +329,152 @@ ${item.coldEmailText || "N/A"}
                         No applications in {stage.label}
                       </div>
                     ) : (
-                      stageItems.map((item) => (
-                        <div
-                          key={item.id}
-                          className="flex flex-col justify-between p-4 rounded-2xl bg-white/80 dark:bg-zinc-900/80 border border-zinc-200/80 dark:border-zinc-800 shadow-md hover:shadow-lg transition-all gap-3"
-                        >
-                          {/* Card Header */}
-                          <div className="flex flex-col gap-1">
-                            <div className="flex justify-between items-start">
-                              <h3 className="font-bold text-sm leading-tight text-zinc-900 dark:text-zinc-100">
-                                {item.entryTitle || item.companyName}
-                              </h3>
-                              <span
-                                className={`text-[10px] font-black px-2 py-0.5 rounded-full shrink-0 ${
-                                  item.matchScore >= 80
-                                    ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300"
-                                    : item.matchScore >= 60
-                                    ? "bg-blue-100 text-blue-800 dark:bg-blue-950/60 dark:text-blue-300"
-                                    : "bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300"
-                                }`}
+                      stageItems.map((item) => {
+                        const isElectrical = (item.selectedPortfolioUrl || "").includes("electrical") || JSON.stringify(item.tailoredResume || "").includes("electrical");
+                        const isMenuOpen = openMenuId === item.id;
+
+                        return (
+                          <div
+                            key={item.id}
+                            className="group relative flex flex-col justify-between p-4 rounded-2xl bg-white/90 dark:bg-zinc-900/90 border border-zinc-200/80 dark:border-zinc-800 shadow-md hover:shadow-xl hover:border-emerald-500/50 transition-all duration-200 gap-3 text-zinc-900 dark:text-zinc-100"
+                          >
+                            {/* Card Header (Zero Overflow Guarantee) */}
+                            <div className="flex flex-col gap-1.5 min-w-0">
+                              <div className="flex items-center justify-between gap-2 min-w-0">
+                                <div className="flex items-center gap-2 min-w-0 flex-1">
+                                  <span className="text-base shrink-0 p-1.5 rounded-xl bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700">
+                                    🏢
+                                  </span>
+                                  <h3 className="font-extrabold text-sm leading-tight truncate text-zinc-900 dark:text-zinc-100" title={item.entryTitle || item.companyName}>
+                                    {item.companyName}
+                                  </h3>
+                                </div>
+
+                                {/* ATS Score Pill (Always inside container with shrink-0) */}
+                                <span
+                                  className={`text-[10px] font-black px-2.5 py-0.5 rounded-full shrink-0 border ${
+                                    item.matchScore >= 80
+                                      ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30"
+                                      : item.matchScore >= 60
+                                      ? "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/30"
+                                      : "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30"
+                                  }`}
+                                >
+                                  {item.matchScore}% ATS
+                                </span>
+                              </div>
+
+                              {/* Target Role & Salary Sub-line */}
+                              <p className="text-xs text-zinc-500 dark:text-zinc-400 font-medium truncate">
+                                {item.targetRole || item.jobTitle} {item.salaryRange ? `• ${item.salaryRange}` : ""}
+                              </p>
+
+                              {/* Portfolio Domain Badge */}
+                              <div className="flex items-center gap-1.5 pt-0.5">
+                                <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-md ${
+                                  isElectrical
+                                    ? "bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20"
+                                    : "bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20"
+                                }`}>
+                                  {isElectrical ? "⚡ Portofolio Elektro" : "💻 Portofolio IT"}
+                                </span>
+                              </div>
+                            </div>
+
+                            {/* Follow-up & Notes Snippets */}
+                            {item.followUpDate && (
+                              <div className="text-[10px] font-semibold text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 p-2 rounded-xl border border-amber-200 dark:border-amber-900/50">
+                                📅 Follow-up: {item.followUpDate}
+                              </div>
+                            )}
+
+                            {item.notes && (
+                              <p className="text-[11px] text-zinc-600 dark:text-zinc-400 line-clamp-2 italic bg-zinc-50 dark:bg-zinc-950/50 p-2 rounded-xl border border-zinc-100 dark:border-zinc-800">
+                                &ldquo;{item.notes}&rdquo;
+                              </p>
+                            )}
+
+                            {/* Sleek Action Toolbar: Primary Preview Button + 3-Dot Quick Menu */}
+                            <div className="flex items-center justify-between border-t border-zinc-100 dark:border-zinc-800/80 pt-2.5 text-xs">
+                              {/* Prominent Primary Preview Detail Button */}
+                              <button
+                                type="button"
+                                onClick={() => setPreviewItem(item)}
+                                className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-extrabold text-xs cursor-pointer shadow-sm transition-all flex items-center gap-1.5"
+                                title="Open Live Markdown & Detail Modal"
                               >
-                                {item.matchScore}% ATS
-                              </span>
+                                👁️ Preview Detail
+                              </button>
+
+                              {/* 3-Dot Options Dropdown */}
+                              <div className="relative">
+                                <button
+                                  type="button"
+                                  onClick={() => setOpenMenuId(isMenuOpen ? null : item.id)}
+                                  className="p-1.5 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-400 hover:text-zinc-200 font-bold text-sm cursor-pointer transition-colors"
+                                  title="Options"
+                                >
+                                  ⋯
+                                </button>
+
+                                {isMenuOpen && (
+                                  <div className="absolute right-0 bottom-8 z-30 w-44 p-1.5 rounded-2xl bg-zinc-900 border border-zinc-700 shadow-2xl flex flex-col gap-1 text-xs font-semibold animate-fade-in text-zinc-200">
+                                    <button
+                                      type="button"
+                                      onClick={() => { setOpenMenuId(null); handleExportZip(item); }}
+                                      className="flex items-center gap-2 p-2 rounded-xl hover:bg-zinc-800 text-left cursor-pointer text-amber-400"
+                                    >
+                                      📦 Export ZIP Package
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => { setOpenMenuId(null); handleOpenEditModal(item); }}
+                                      className="flex items-center gap-2 p-2 rounded-xl hover:bg-zinc-800 text-left cursor-pointer"
+                                    >
+                                      📝 Notes &amp; Follow-up
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => { setOpenMenuId(null); handleRestoreDraft(item); }}
+                                      className="flex items-center gap-2 p-2 rounded-xl hover:bg-zinc-800 text-left cursor-pointer text-blue-400"
+                                    >
+                                      🚀 Load in Generator
+                                    </button>
+
+                                    <div className="border-t border-zinc-800 my-0.5" />
+
+                                    {/* Stage Switch Options */}
+                                    <div className="px-2 py-1 text-[10px] text-zinc-500 uppercase font-bold">Pindah Stage:</div>
+                                    {PIPELINE_STAGES.map((st) => (
+                                      <button
+                                        key={st.id}
+                                        type="button"
+                                        onClick={() => { setOpenMenuId(null); handleUpdateStatus(item.id, st.id); }}
+                                        className={`flex items-center gap-2 p-1.5 rounded-lg text-[11px] text-left cursor-pointer ${
+                                          (item.status || "Applied") === st.id ? "bg-emerald-950/60 text-emerald-400 font-bold" : "hover:bg-zinc-800 text-zinc-300"
+                                        }`}
+                                      >
+                                        <span>{st.icon}</span> {st.label}
+                                      </button>
+                                    ))}
+
+                                    <div className="border-t border-zinc-800 my-0.5" />
+
+                                    <button
+                                      type="button"
+                                      onClick={() => { setOpenMenuId(null); handleDeleteItem(item.id); }}
+                                      className="flex items-center gap-2 p-2 rounded-xl hover:bg-red-950/40 text-left cursor-pointer text-red-400"
+                                    >
+                                      🗑️ Delete Entry
+                                    </button>
+                                  </div>
+                                )}
+                              </div>
                             </div>
-                            <p className="text-xs text-zinc-500 font-medium">{item.targetRole || item.jobTitle}</p>
+
                           </div>
-
-                          {/* Follow-up Date Badge & Notes Snippet */}
-                          {item.followUpDate && (
-                            <div className="text-[10px] font-semibold text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 p-2 rounded-xl border border-amber-200 dark:border-amber-900/50">
-                              📅 Follow-up: {item.followUpDate}
-                            </div>
-                          )}
-
-                          {item.notes && (
-                            <p className="text-[11px] text-zinc-600 dark:text-zinc-400 line-clamp-2 italic bg-zinc-50 dark:bg-zinc-950/50 p-2 rounded-xl border border-zinc-100 dark:border-zinc-800">
-                              &ldquo;{item.notes}&rdquo;
-                            </p>
-                          )}
-
-                          {/* Quick Status Selector */}
-                          <div className="flex items-center justify-between text-[10px] text-zinc-400 pt-1">
-                            <span>Stage:</span>
-                            <select
-                              value={item.status || "Applied"}
-                              onChange={(e) => handleUpdateStatus(item.id, e.target.value as PipelineStatus)}
-                              className="bg-zinc-100 dark:bg-zinc-800 text-zinc-800 dark:text-zinc-200 font-bold p-1 rounded-lg outline-none cursor-pointer text-[10px]"
-                            >
-                              {PIPELINE_STAGES.map((s) => (
-                                <option key={s.id} value={s.id}>
-                                  {s.label}
-                                </option>
-                              ))}
-                            </select>
-                          </div>
-
-                          {/* Actions Bar */}
-                          <div className="flex items-center justify-between border-t border-zinc-100 dark:border-zinc-800/80 pt-2 text-xs">
-                            <button
-                              type="button"
-                              onClick={() => setPreviewItem(item)}
-                              className="text-emerald-600 dark:text-emerald-400 hover:underline font-extrabold text-[11px] cursor-pointer"
-                              title="Live Preview Markdown Rekap FIRST"
-                            >
-                              👁️ Preview
-                            </button>
-
-                            <button
-                              type="button"
-                              onClick={() => handleExportZip(item)}
-                              disabled={exportingId === item.id}
-                              className="text-amber-600 dark:text-amber-400 hover:underline font-bold text-[11px] cursor-pointer"
-                              title="Export Full Package (.zip)"
-                            >
-                              {exportingId === item.id ? "Packing..." : "📦 ZIP"}
-                            </button>
-
-                            <button
-                              type="button"
-                              onClick={() => handleOpenEditModal(item)}
-                              className="text-zinc-500 hover:text-zinc-900 dark:hover:text-white font-semibold text-[11px] cursor-pointer"
-                            >
-                              📝 Notes
-                            </button>
-
-                            <button
-                              type="button"
-                              onClick={() => handleRestoreDraft(item)}
-                              className="text-blue-600 dark:text-blue-400 hover:underline font-semibold text-[11px] cursor-pointer"
-                              title="Load in ATS Generator"
-                            >
-                              🚀 Edit
-                            </button>
-
-                            <button
-                              type="button"
-                              onClick={() => handleDeleteItem(item.id)}
-                              className="text-red-500 hover:text-red-700 text-[11px] cursor-pointer"
-                              title="Delete entry"
-                            >
-                              ✕
-                            </button>
-                          </div>
-
-                        </div>
-                      ))
+                        );
+                      })
                     )}
                   </div>
                 </div>
