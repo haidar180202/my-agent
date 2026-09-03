@@ -47,6 +47,14 @@ interface PreloadedAtsData {
   missingKeywords?: string[];
 }
 
+function getFriendlyErrorMessage(err: unknown, defaultMsg: string): string {
+  const msg = (err as Error)?.message || "";
+  if (msg.includes("Failed to fetch") || msg.includes("fetch failed") || msg.includes("NetworkError")) {
+    return "⚠️ Failed to fetch: Koneksi jaringan atau server terputus / mengalami timeout. Mohon pastikan koneksi internet aktif, server Next.js lokal atau Vercel berjalan, lalu silakan coba lagi.";
+  }
+  return msg || defaultMsg;
+}
+
 export default function AtsGeneratePage() {
   const [step, setStep] = useState<"input" | "edit" | "preview">("input");
   const [jobDescription, setJobDescription] = useState("");
@@ -221,8 +229,7 @@ export default function AtsGeneratePage() {
       setStep("edit");
     } catch (err) {
       console.error(err);
-      const errorVal = err as Error;
-      setError(errorVal.message);
+      setError(getFriendlyErrorMessage(err, "Failed to generate tailored documents"));
     } finally {
       setLoading(false);
     }
@@ -256,8 +263,7 @@ export default function AtsGeneratePage() {
       setStep("preview");
     } catch (err) {
       console.error(err);
-      const errorVal = err as Error;
-      setError(errorVal.message);
+      setError(getFriendlyErrorMessage(err, "Failed to compile PDFs"));
     } finally {
       setLoading(false);
     }

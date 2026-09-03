@@ -4,6 +4,8 @@ import path from "path";
 import crypto from "crypto";
 import { generateWithFailover } from "@/utils/geminiFailover";
 
+export const maxDuration = 60;
+
 interface PersonalInfo {
   name?: string;
   title?: string;
