@@ -1009,7 +1009,11 @@ Do NOT wrap the response in markdown blocks (e.g., \`\`\`json). Just the raw JSO
       console.log("Launching Puppeteer...");
       let browser;
 
-      if (process.env.NODE_ENV === "production" || process.env.VERCEL) {
+      const isVercel = !!process.env.VERCEL || !!process.env.NEXT_PUBLIC_VERCEL_ENV;
+      const isWindows = process.platform === "win32";
+      const useServerlessChromium = isVercel && !isWindows;
+
+      if (useServerlessChromium) {
         console.log(
           "Loading serverless Puppeteer (puppeteer-core & @sparticuz/chromium)...",
         );
@@ -1035,29 +1039,52 @@ Do NOT wrap the response in markdown blocks (e.g., \`\`\`json). Just the raw JSO
           headless: (sparticuzChromium.headless as boolean) || true,
         });
       } else {
-        console.log("Loading local Puppeteer...");
+        console.log("Loading local Puppeteer for Windows / Local environment...");
         const puppeteerLocal = await import("puppeteer");
 
-        let executablePath = undefined;
-        try {
-          const p1 =
-            "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe";
-          await fs.access(p1);
-          executablePath = p1;
-        } catch {
-          try {
-            const p2 =
-              "C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe";
-            await fs.access(p2);
-            executablePath = p2;
-          } catch {
-            // Fallback to default
+        let executablePath: string | undefined = undefined;
+
+        const possiblePaths = [
+          "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
+          "C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe",
+          process.env.LOCALAPPDATA ? path.join(process.env.LOCALAPPDATA, "Google\\Chrome\\Application\\chrome.exe") : "",
+          process.env.PROGRAMFILES ? path.join(process.env.PROGRAMFILES, "Google\\Chrome\\Application\\chrome.exe") : "",
+          process.env["PROGRAMFILES(X86)"] ? path.join(process.env["PROGRAMFILES(X86)"], "Google\\Chrome\\Application\\chrome.exe") : "",
+        ];
+
+        for (const p of possiblePaths) {
+          if (p) {
+            try {
+              await fs.access(p);
+              executablePath = p;
+              console.log("Found local Google Chrome installation at:", p);
+              break;
+            } catch {
+              // Ignore and continue check
+            }
           }
         }
-        console.log("Using local Chrome path:", executablePath || "default");
+
+        if (!executablePath) {
+          try {
+            if (typeof puppeteerLocal.executablePath === "function") {
+              const defaultBundledPath = puppeteerLocal.executablePath();
+              if (defaultBundledPath) {
+                await fs.access(defaultBundledPath);
+                executablePath = defaultBundledPath;
+                console.log("Using puppeteer default bundled executable path:", executablePath);
+              }
+            }
+          } catch (err) {
+            console.log("Bundled puppeteer executable path not accessible:", err);
+          }
+        }
+
+        console.log("Launching local puppeteer browser with executablePath:", executablePath || "default");
         browser = await puppeteerLocal.launch({
           headless: true,
-          executablePath: executablePath,
+          executablePath: executablePath || undefined,
+          args: ["--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage"],
         });
       }
 
