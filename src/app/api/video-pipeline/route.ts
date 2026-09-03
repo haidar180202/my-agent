@@ -1,11 +1,8 @@
 import { NextResponse } from "next/server";
-import { GoogleGenAI } from "@google/genai";
 import fs from "fs/promises";
 import path from "path";
 import crypto from "crypto";
-
-// Initialize Gemini Client
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "" });
+import { generateWithFailover } from "@/utils/geminiFailover";
 
 // Password Verification Helper using existing master_cv.enc file
 async function verifyPassword(password: string): Promise<boolean> {
@@ -69,13 +66,6 @@ export async function POST(req: Request) {
       );
     }
 
-    if (!process.env.GEMINI_API_KEY) {
-      return NextResponse.json(
-        { error: "Gemini API key is missing in environment variables" },
-        { status: 500 },
-      );
-    }
-
     console.log(`Generating video script for format: ${videoFormat}, tone: ${videoTone}`);
 
     const prompt = `
@@ -108,12 +98,10 @@ Do NOT wrap the response in markdown blocks (e.g., \`\`\`json). Just the raw JSO
 `;
 
     try {
-      const response = await ai.models.generateContent({
-        model: "gemini-2.5-flash",
+      const { response } = await generateWithFailover({
         contents: prompt,
-        config: {
-          temperature: 0.7,
-        },
+        temperature: 0.7,
+        preferredModel: "gemini-2.5-flash",
       });
       const aiResponseText = response.text || "[]";
       const cleanJsonString = aiResponseText

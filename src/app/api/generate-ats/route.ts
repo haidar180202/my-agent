@@ -1,11 +1,8 @@
 import { NextResponse } from "next/server";
 import fs from "fs/promises";
 import path from "path";
-import { GoogleGenAI } from "@google/genai";
 import crypto from "crypto";
-
-// Initialize Gemini Client
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "" });
+import { generateWithFailover } from "@/utils/geminiFailover";
 
 interface PersonalInfo {
   name?: string;
@@ -520,9 +517,9 @@ Return ONLY raw JSON with no markdown formatting:
 }`;
 
       try {
-        const response = await ai.models.generateContent({
-          model: "gemini-2.5-flash",
+        const { response } = await generateWithFailover({
           contents: [{ role: "user", parts: [{ text: classifyPrompt }] }],
+          preferredModel: "gemini-2.5-flash",
         });
 
         const cleanJson = (response.text || "").replace(/```json/g, "").replace(/```/g, "").trim();
@@ -720,16 +717,14 @@ Do NOT wrap the response in markdown blocks (e.g., \`\`\`json). Just the raw JSO
         keyHighlightsStrategy: "",
       };
 
-      if (process.env.GEMINI_API_KEY) {
-        try {
-          const response = await ai.models.generateContent({
-            model: "gemini-2.5-flash",
-            contents: prompt,
-            config: {
-              temperature: 0.3,
-            },
-          });
-          const aiResponseText = response.text || "{}";
+      try {
+        const { response, usedModel } = await generateWithFailover({
+          contents: prompt,
+          temperature: 0.3,
+          preferredModel: "gemini-2.5-flash",
+        });
+        console.log(`Successfully generated content using model ${usedModel}`);
+        const aiResponseText = response.text || "{}";
           const cleanJsonString = aiResponseText
             .replace(/```json/g, "")
             .replace(/```/g, "")
@@ -779,12 +774,6 @@ Do NOT wrap the response in markdown blocks (e.g., \`\`\`json). Just the raw JSO
             { status: 500 },
           );
         }
-      } else {
-        return NextResponse.json(
-          { error: "Gemini API key is missing in environment variables" },
-          { status: 500 },
-        );
-      }
 
       return NextResponse.json({
         success: true,
@@ -833,38 +822,29 @@ Return ONLY a raw JSON object with the following exact keys:
 Do NOT wrap the response in markdown blocks (e.g., \`\`\`json). Just the raw JSON string.
 `;
 
-      if (process.env.GEMINI_API_KEY) {
-        try {
-          const response = await ai.models.generateContent({
-            model: "gemini-2.5-flash",
-            contents: prompt,
-            config: {
-              temperature: 0.3,
-            },
-          });
-          const aiResponseText = response.text || "{}";
-          const cleanJsonString = aiResponseText
-            .replace(/```json/g, "")
-            .replace(/```/g, "")
-            .trim();
+      try {
+        const { response } = await generateWithFailover({
+          contents: prompt,
+          temperature: 0.3,
+          preferredModel: "gemini-2.5-flash",
+        });
+        const aiResponseText = response.text || "{}";
+        const cleanJsonString = aiResponseText
+          .replace(/```json/g, "")
+          .replace(/```/g, "")
+          .trim();
 
-          const responseObj = JSON.parse(cleanJsonString);
-          return NextResponse.json({
-            success: true,
-            matchScore: responseObj.matchScore || 75,
-            missingKeywords: responseObj.missingKeywords || [],
-          });
-        } catch (aiErr) {
-          console.error("Gemini AI Error:", aiErr);
-          const errorVal = aiErr as Error;
-          return NextResponse.json(
-            { error: "Gemini AI evaluation failed: " + errorVal.message },
-            { status: 500 },
-          );
-        }
-      } else {
+        const responseObj = JSON.parse(cleanJsonString);
+        return NextResponse.json({
+          success: true,
+          matchScore: responseObj.matchScore || 75,
+          missingKeywords: responseObj.missingKeywords || [],
+        });
+      } catch (aiErr) {
+        console.error("Gemini AI Error:", aiErr);
+        const errorVal = aiErr as Error;
         return NextResponse.json(
-          { error: "Gemini API key is missing in environment variables" },
+          { error: "Gemini AI evaluation failed: " + errorVal.message },
           { status: 500 },
         );
       }
@@ -944,39 +924,30 @@ Return ONLY a raw JSON object with the following exact keys:
 Do NOT wrap the response in markdown blocks (e.g., \`\`\`json). Just the raw JSON string.
 `;
 
-      if (process.env.GEMINI_API_KEY) {
-        try {
-          const response = await ai.models.generateContent({
-            model: "gemini-2.5-flash",
-            contents: prompt,
-            config: {
-              temperature: 0.4,
-            },
-          });
-          const aiResponseText = response.text || "{}";
-          const cleanJsonString = aiResponseText
-            .replace(/```json/g, "")
-            .replace(/```/g, "")
-            .trim();
-          const responseObj = JSON.parse(cleanJsonString);
+      try {
+        const { response } = await generateWithFailover({
+          contents: prompt,
+          temperature: 0.4,
+          preferredModel: "gemini-2.5-flash",
+        });
+        const aiResponseText = response.text || "{}";
+        const cleanJsonString = aiResponseText
+          .replace(/```json/g, "")
+          .replace(/```/g, "")
+          .trim();
+        const responseObj = JSON.parse(cleanJsonString);
 
-          return NextResponse.json({
-            success: true,
-            question,
-            answer: responseObj.answer || "",
-            keyPoints: responseObj.keyPoints || [],
-          });
-        } catch (aiErr) {
-          console.error("Gemini AI Error:", aiErr);
-          const errorVal = aiErr as Error;
-          return NextResponse.json(
-            { error: "Failed to generate screening answer: " + errorVal.message },
-            { status: 500 },
-          );
-        }
-      } else {
+        return NextResponse.json({
+          success: true,
+          question,
+          answer: responseObj.answer || "",
+          keyPoints: responseObj.keyPoints || [],
+        });
+      } catch (aiErr) {
+        console.error("Gemini AI Error:", aiErr);
+        const errorVal = aiErr as Error;
         return NextResponse.json(
-          { error: "Gemini API key missing" },
+          { error: "Failed to generate screening answer: " + errorVal.message },
           { status: 500 },
         );
       }
@@ -1068,7 +1039,7 @@ Do NOT wrap the response in markdown blocks (e.g., \`\`\`json). Just the raw JSO
         if (!executablePath) {
           try {
             if (typeof puppeteerLocal.executablePath === "function") {
-              const defaultBundledPath = puppeteerLocal.executablePath();
+              const defaultBundledPath = await puppeteerLocal.executablePath();
               if (defaultBundledPath) {
                 await fs.access(defaultBundledPath);
                 executablePath = defaultBundledPath;

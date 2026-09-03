@@ -57,55 +57,7 @@ export interface CopilotResponse {
   totalKeys?: number;
 }
 
-// Multi-API Key Resolver Helper
-function getGeminiApiKeys(): string[] {
-  const keys: string[] = [];
-
-  if (process.env.GEMINI_API_KEYS) {
-    const splitKeys = process.env.GEMINI_API_KEYS.split(",").map((k) => k.trim()).filter(Boolean);
-    keys.push(...splitKeys);
-  }
-
-  for (let i = 1; i <= 10; i++) {
-    const k = process.env[`GEMINI_API_KEY_${i}`];
-    if (k && k.trim()) {
-      keys.push(k.trim());
-    }
-  }
-
-  if (keys.length === 0 && process.env.GEMINI_API_KEY) {
-    keys.push(process.env.GEMINI_API_KEY.trim());
-  }
-
-  return keys;
-}
-
-// Failover Load Balancer Execution Helper
-async function generateWithFailover(
-  contents: (string | { inlineData: { data: string; mimeType: string } })[] | string
-) {
-  const keys = getGeminiApiKeys();
-  if (keys.length === 0) {
-    throw new Error("No GEMINI_API_KEY configured in environment variables");
-  }
-
-  let lastError: Error | null = null;
-  for (let i = 0; i < keys.length; i++) {
-    try {
-      const ai = new GoogleGenAI({ apiKey: keys[i] });
-      const response = await ai.models.generateContent({
-        model: "gemini-2.5-flash",
-        contents,
-      });
-      return { response, activeKeyIndex: i + 1, totalKeys: keys.length };
-    } catch (err) {
-      lastError = err as Error;
-      console.warn(`⚠️ Gemini API Key #${i + 1} rate limited. Auto-switching to Key #${i + 2}... Error: ${lastError.message}`);
-    }
-  }
-
-  throw new Error(`All ${keys.length} Gemini API keys failed or rate-limited: ${lastError?.message}`);
-}
+import { generateWithFailover } from "@/utils/geminiFailover";
 
 export async function POST(req: Request) {
   try {

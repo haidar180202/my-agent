@@ -1,11 +1,8 @@
 import { NextResponse } from "next/server";
-import { GoogleGenAI } from "@google/genai";
 import fs from "fs/promises";
 import path from "path";
 import crypto from "crypto";
-
-// Initialize Gemini Client
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "" });
+import { generateWithFailover } from "@/utils/geminiFailover";
 
 interface DialogueTurn {
   sender: "ai" | "user";
@@ -123,10 +120,10 @@ Do NOT wrap the response in markdown blocks. Just raw JSON string.
 `;
 
       try {
-        const response = await ai.models.generateContent({
-          model: "gemini-2.5-flash",
+        const { response } = await generateWithFailover({
           contents: prompt,
-          config: { temperature: 0.7 },
+          temperature: 0.5,
+          preferredModel: "gemini-2.5-flash",
         });
         const aiResponseText = response.text || "{}";
         const cleanJsonString = aiResponseText.replace(/```json/g, "").replace(/```/g, "").trim();
@@ -187,10 +184,10 @@ Do NOT wrap the response in markdown blocks. Just raw JSON string.
 `;
 
       try {
-        const response = await ai.models.generateContent({
-          model: "gemini-2.5-flash",
+        const { response } = await generateWithFailover({
           contents: prompt,
-          config: { temperature: 0.6 },
+          temperature: 0.6,
+          preferredModel: "gemini-2.5-flash",
         });
         const aiResponseText = response.text || "{}";
         const cleanJsonString = aiResponseText.replace(/```json/g, "").replace(/```/g, "").trim();
@@ -241,10 +238,10 @@ Do NOT wrap the response in markdown blocks. Just raw JSON string.
 `;
 
       try {
-        const response = await ai.models.generateContent({
-          model: "gemini-2.5-flash",
+        const { response } = await generateWithFailover({
           contents: prompt,
-          config: { temperature: 0.3 },
+          temperature: 0.3,
+          preferredModel: "gemini-2.5-flash",
         });
         const aiResponseText = response.text || "{}";
         const cleanJsonString = aiResponseText.replace(/```json/g, "").replace(/```/g, "").trim();

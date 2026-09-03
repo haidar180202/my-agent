@@ -1,11 +1,8 @@
 import { NextResponse } from "next/server";
-import { GoogleGenAI } from "@google/genai";
 import fs from "fs/promises";
 import path from "path";
 import crypto from "crypto";
-
-// Initialize Gemini Client
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "" });
+import { generateWithFailover } from "@/utils/geminiFailover";
 
 // Password Verification Helper using existing master_cv.enc file
 async function verifyPassword(password: string): Promise<boolean> {
@@ -113,12 +110,10 @@ Do NOT wrap the response in markdown blocks (e.g., \`\`\`json). Just the raw JSO
 `;
 
       try {
-        const response = await ai.models.generateContent({
-          model: "gemini-2.5-flash",
+        const { response } = await generateWithFailover({
           contents: prompt,
-          config: {
-            temperature: 0.7, // Slightly higher for variation
-          },
+          temperature: 0.7,
+          preferredModel: "gemini-2.5-flash",
         });
         const aiResponseText = response.text || "[]";
         const cleanJsonString = aiResponseText
@@ -178,12 +173,10 @@ Do NOT wrap the response in markdown blocks (e.g., \`\`\`json). Just the raw JSO
 `;
 
       try {
-        const response = await ai.models.generateContent({
-          model: "gemini-2.5-flash",
+        const { response } = await generateWithFailover({
           contents: prompt,
-          config: {
-            temperature: 0.3, // Lower temp for objective evaluation
-          },
+          temperature: 0.3,
+          preferredModel: "gemini-2.5-flash",
         });
         const aiResponseText = response.text || "{}";
         const cleanJsonString = aiResponseText

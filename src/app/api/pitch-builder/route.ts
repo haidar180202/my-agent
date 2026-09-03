@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import fs from "fs/promises";
 import path from "path";
 import crypto from "crypto";
-import { GoogleGenAI } from "@google/genai";
+import { generateWithFailover } from "@/utils/geminiFailover";
 
 // Resolve dataPath helper
 async function getMasterCvPath(): Promise<string> {
@@ -68,14 +68,6 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Invalid decryption password. Access Denied." }, { status: 401 });
     }
 
-    // 2. Initialize Gemini API
-    const apiKey = process.env.GEMINI_API_KEY;
-    if (!apiKey) {
-      return NextResponse.json({ error: "GEMINI_API_KEY is not configured" }, { status: 500 });
-    }
-
-    const ai = new GoogleGenAI({ apiKey });
-
     const prompt = `You are an elite Tech Career Strategist and Executive Recruiter Copywriter.
 Generate 3 high-conversion outreach assets tailored to the following candidate and target job:
 
@@ -100,9 +92,9 @@ Generate a JSON object matching this schema EXACTLY:
 
 CRITICAL: Return ONLY valid, raw JSON. Do NOT wrap in Markdown code blocks or extra text.`;
 
-    const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
+    const { response } = await generateWithFailover({
       contents: prompt,
+      preferredModel: "gemini-2.5-flash",
     });
 
     const textOutput = response.text || "";
