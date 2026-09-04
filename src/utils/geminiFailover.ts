@@ -52,7 +52,8 @@ export async function generateWithFailover(
   ];
 
   const modelList = Array.from(new Set(models));
-  let lastError: Error | null = null;
+  const allErrors: string[] = [];
+  let lastErrorMsg = "";
 
   for (const model of modelList) {
     for (let i = 0; i < keys.length; i++) {
@@ -65,8 +66,10 @@ export async function generateWithFailover(
         });
         return { response, activeKeyIndex: i + 1, totalKeys: keys.length, usedModel: model };
       } catch (err) {
-        lastError = err as Error;
-        const msg = lastError.message || "";
+        const errorVal = err as Error;
+        const msg = errorVal.message || "";
+        lastErrorMsg = msg;
+        allErrors.push(msg);
         console.warn(`⚠️ Gemini API call failed [Model: ${model}, Key #${i + 1}/${keys.length}]: ${msg.slice(0, 150)}...`);
 
         // If the key is revoked/leaked (403), log specifically
@@ -82,27 +85,26 @@ export async function generateWithFailover(
     }
   }
 
-  const isLeakedOrRevoked =
-    lastError?.message?.includes("leaked") ||
-    lastError?.message?.includes("PERMISSION_DENIED") ||
-    lastError?.message?.includes("403");
+  // Comprehensive diagnosis across ALL recorded errors in the loop
+  const hasLeakedKey = allErrors.some(
+    (e) => e.includes("leaked") || e.includes("PERMISSION_DENIED") || e.includes("403")
+  );
 
-  const isQuotaExhausted =
-    lastError?.message?.includes("429") ||
-    lastError?.message?.includes("RESOURCE_EXHAUSTED") ||
-    lastError?.message?.includes("quota");
+  const hasQuotaExhausted = allErrors.some(
+    (e) => e.includes("429") || e.includes("RESOURCE_EXHAUSTED") || e.includes("quota")
+  );
 
-  if (isLeakedOrRevoked) {
+  if (hasLeakedKey) {
     throw new Error(
-      `⚠️ Key #2 API Key Gemini Anda terdeteksi DIBLOKIR/REVOKED oleh Google ("Your API key was reported as leaked"). Mohon buat API Key baru di https://aistudio.google.com/ lalu perbarui GEMINI_API_KEY di .env.local atau Vercel.`
+      `⚠️ API Key Gemini Anda terdeteksi DIBLOKIR/REVOKED oleh Google ("Your API key was reported as leaked"). Mohon buat API Key baru di https://aistudio.google.com/ lalu perbarui GEMINI_API_KEY di .env.local atau Vercel.`
     );
   }
 
-  if (isQuotaExhausted) {
+  if (hasQuotaExhausted) {
     throw new Error(
-      `⚠️ Seluruh ${keys.length} API Key Gemini Anda saat ini telah mencapai batas kuota (Rate Limit Free Tier 20 req/day). Silakan buat & tambahkan API Key Gemini baru di https://aistudio.google.com/ pada file .env.local (GEMINI_API_KEY_2=...) atau di Vercel Environment Variables.`
+      `⚠️ Seluruh ${keys.length} API Key Gemini Anda saat ini telah mencapai batas kuota harian (Rate Limit Free Tier 20 req/day). Silakan buat & tambahkan API Key Gemini baru di https://aistudio.google.com/ pada file .env.local (GEMINI_API_KEY_2=...) atau di Vercel Environment Variables.`
     );
   }
 
-  throw new Error(`All ${keys.length} Gemini API key(s) and fallback models exhausted. Last error: ${lastError?.message}`);
+  throw new Error(`All ${keys.length} Gemini API key(s) and fallback models exhausted. Last error: ${lastErrorMsg}`);
 }
