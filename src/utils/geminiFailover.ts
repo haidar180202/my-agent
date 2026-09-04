@@ -10,13 +10,16 @@ export function getGeminiApiKeys(): string[] {
 
   for (let i = 1; i <= 10; i++) {
     const k = process.env[`GEMINI_API_KEY_${i}`];
-    if (k && k.trim()) {
+    if (k && k.trim() && !k.trim().startsWith("GEMINI_API_KEY")) {
       keys.push(k.trim());
     }
   }
 
-  if (keys.length === 0 && process.env.GEMINI_API_KEY) {
-    keys.push(process.env.GEMINI_API_KEY.trim());
+  if (process.env.GEMINI_API_KEY) {
+    const mainKey = process.env.GEMINI_API_KEY.trim();
+    if (mainKey && !mainKey.startsWith("GEMINI_API_KEY")) {
+      keys.push(mainKey);
+    }
   }
 
   return Array.from(new Set(keys));
@@ -43,12 +46,10 @@ export async function generateWithFailover(
     throw new Error("No GEMINI_API_KEY configured in environment variables. Please set GEMINI_API_KEY in .env.local");
   }
 
-  // Active & verified Gemini Model Fallback Cascade Order
+  // Active & verified Gemini Model for current Google GenAI SDK
   const models = [
     options.preferredModel || "gemini-2.5-flash",
-    "gemini-3.6-flash",
-    "gemini-3.5-flash",
-    "gemini-2.5-flash-lite",
+    "gemini-2.5-flash",
   ];
 
   const modelList = Array.from(new Set(models));
@@ -72,9 +73,8 @@ export async function generateWithFailover(
         allErrors.push(msg);
         console.warn(`⚠️ Gemini API call failed [Model: ${model}, Key #${i + 1}/${keys.length}]: ${msg.slice(0, 150)}...`);
 
-        // If the key is revoked/leaked (403), log specifically
-        if (msg.includes("leaked") || msg.includes("403") || msg.includes("PERMISSION_DENIED")) {
-          console.error(`❌ Gemini API Key #${i + 1} was REVOKED/BLOCKED by Google due to leak detection. Replace this key!`);
+        if (msg.includes("leaked") || msg.includes("403") || msg.includes("PERMISSION_DENIED") || msg.includes("INVALID_ARGUMENT") || msg.includes("not valid")) {
+          console.error(`❌ Gemini API Key #${i + 1} was REVOKED or is INVALID. Replace this key!`);
         }
 
         // If the model itself is not found (404), skip remaining keys for this invalid model
@@ -86,23 +86,23 @@ export async function generateWithFailover(
   }
 
   // Comprehensive diagnosis across ALL recorded errors in the loop
-  const hasLeakedKey = allErrors.some(
-    (e) => e.includes("leaked") || e.includes("PERMISSION_DENIED") || e.includes("403")
+  const hasLeakedOrInvalidKey = allErrors.some(
+    (e) => e.includes("leaked") || e.includes("PERMISSION_DENIED") || e.includes("403") || e.includes("INVALID_ARGUMENT") || e.includes("not valid")
   );
 
   const hasQuotaExhausted = allErrors.some(
     (e) => e.includes("429") || e.includes("RESOURCE_EXHAUSTED") || e.includes("quota")
   );
 
-  if (hasLeakedKey) {
+  if (hasQuotaExhausted) {
     throw new Error(
-      `⚠️ API Key Gemini Anda terdeteksi DIBLOKIR/REVOKED oleh Google ("Your API key was reported as leaked"). Mohon buat API Key baru di https://aistudio.google.com/ lalu perbarui GEMINI_API_KEY di .env.local atau Vercel.`
+      `⚠️ Seluruh ${keys.length} API Key Gemini Anda saat ini telah mencapai batas kuota harian (Rate Limit Free Tier). Silakan buat & tambahkan API Key Gemini baru di https://aistudio.google.com/ pada file .env.local atau Vercel Environment Variables.`
     );
   }
 
-  if (hasQuotaExhausted) {
+  if (hasLeakedOrInvalidKey) {
     throw new Error(
-      `⚠️ Seluruh ${keys.length} API Key Gemini Anda saat ini telah mencapai batas kuota harian (Rate Limit Free Tier 20 req/day). Silakan buat & tambahkan API Key Gemini baru di https://aistudio.google.com/ pada file .env.local (GEMINI_API_KEY_2=...) atau di Vercel Environment Variables.`
+      `⚠️ API Key Gemini Anda tidak valid atau telah diblokir/revoked oleh Google ("Your API key was reported as leaked" / "API key not valid"). Mohon buat API Key baru di https://aistudio.google.com/ lalu perbarui GEMINI_API_KEY_1 di .env.local atau Vercel.`
     );
   }
 
