@@ -46,10 +46,9 @@ export async function generateWithFailover(
   // Active & verified Gemini Model Fallback Cascade Order
   const models = [
     options.preferredModel || "gemini-2.5-flash",
-    "gemini-2.0-flash",
+    "gemini-3.6-flash",
+    "gemini-3.5-flash",
     "gemini-2.5-flash-lite",
-    "gemini-2.0-flash-lite",
-    "gemini-1.5-flash",
   ];
 
   const modelList = Array.from(new Set(models));
@@ -70,6 +69,11 @@ export async function generateWithFailover(
         const msg = lastError.message || "";
         console.warn(`⚠️ Gemini API call failed [Model: ${model}, Key #${i + 1}/${keys.length}]: ${msg.slice(0, 150)}...`);
 
+        // If the key is revoked/leaked (403), log specifically
+        if (msg.includes("leaked") || msg.includes("403") || msg.includes("PERMISSION_DENIED")) {
+          console.error(`❌ Gemini API Key #${i + 1} was REVOKED/BLOCKED by Google due to leak detection. Replace this key!`);
+        }
+
         // If the model itself is not found (404), skip remaining keys for this invalid model
         if (msg.includes("404") || msg.includes("not found")) {
           break;
@@ -78,14 +82,25 @@ export async function generateWithFailover(
     }
   }
 
+  const isLeakedOrRevoked =
+    lastError?.message?.includes("leaked") ||
+    lastError?.message?.includes("PERMISSION_DENIED") ||
+    lastError?.message?.includes("403");
+
   const isQuotaExhausted =
     lastError?.message?.includes("429") ||
     lastError?.message?.includes("RESOURCE_EXHAUSTED") ||
     lastError?.message?.includes("quota");
 
+  if (isLeakedOrRevoked) {
+    throw new Error(
+      `⚠️ Key #2 API Key Gemini Anda terdeteksi DIBLOKIR/REVOKED oleh Google ("Your API key was reported as leaked"). Mohon buat API Key baru di https://aistudio.google.com/ lalu perbarui GEMINI_API_KEY di .env.local atau Vercel.`
+    );
+  }
+
   if (isQuotaExhausted) {
     throw new Error(
-      `⚠️ Seluruh ${keys.length} API Key Gemini Anda saat ini telah mencapai batas kuota (Rate Limit Free Tier 20 req/day). Silakan tambahkan API Key Gemini baru di .env.local (misal: GEMINI_API_KEY_2=...) atau di Vercel Environment Variables, lalu coba lagi.`
+      `⚠️ Seluruh ${keys.length} API Key Gemini Anda saat ini telah mencapai batas kuota (Rate Limit Free Tier 20 req/day). Silakan buat & tambahkan API Key Gemini baru di https://aistudio.google.com/ pada file .env.local (GEMINI_API_KEY_2=...) atau di Vercel Environment Variables.`
     );
   }
 
