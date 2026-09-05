@@ -8,11 +8,15 @@ export function getGeminiApiKeys(): string[] {
     keys.push(...splitKeys);
   }
 
-  for (let i = 1; i <= 10; i++) {
+  // Unlimited sequential dynamic key discovery: read GEMINI_API_KEY_1, GEMINI_API_KEY_2, ... until undefined/empty
+  let i = 1;
+  while (true) {
     const k = process.env[`GEMINI_API_KEY_${i}`];
-    if (k && k.trim() && !k.trim().startsWith("GEMINI_API_KEY")) {
-      keys.push(k.trim());
+    if (!k || !k.trim() || k.trim().startsWith("GEMINI_API_KEY")) {
+      break;
     }
+    keys.push(k.trim());
+    i++;
   }
 
   if (process.env.GEMINI_API_KEY) {
@@ -73,8 +77,21 @@ export async function generateWithFailover(
         allErrors.push(msg);
         console.warn(`⚠️ Gemini API call failed [Model: ${model}, Key #${i + 1}/${keys.length}]: ${msg.slice(0, 150)}...`);
 
-        if (msg.includes("leaked") || msg.includes("403") || msg.includes("PERMISSION_DENIED") || msg.includes("INVALID_ARGUMENT") || msg.includes("not valid")) {
-          console.error(`❌ Gemini API Key #${i + 1} was REVOKED or is INVALID. Replace this key!`);
+        const isUnauthorizedOrInvalid =
+          msg.includes("401") ||
+          msg.includes("unauthorized") ||
+          msg.includes("INVALID_ARGUMENT") ||
+          msg.includes("not valid") ||
+          msg.includes("leaked") ||
+          msg.includes("403") ||
+          msg.includes("PERMISSION_DENIED");
+
+        if (isUnauthorizedOrInvalid) {
+          console.error(
+            `❌ Gemini API Key #${i + 1} returned 401 Unauthorized / Invalid Key. Reached end of valid configured key chain (Boundary Stop at key #${i + 1}).`
+          );
+          // Stop trying subsequent non-existent or unauthorized keys
+          break;
         }
 
         // If the model itself is not found (404), skip remaining keys for this invalid model
@@ -87,7 +104,14 @@ export async function generateWithFailover(
 
   // Comprehensive diagnosis across ALL recorded errors in the loop
   const hasLeakedOrInvalidKey = allErrors.some(
-    (e) => e.includes("leaked") || e.includes("PERMISSION_DENIED") || e.includes("403") || e.includes("INVALID_ARGUMENT") || e.includes("not valid")
+    (e) =>
+      e.includes("401") ||
+      e.includes("unauthorized") ||
+      e.includes("leaked") ||
+      e.includes("PERMISSION_DENIED") ||
+      e.includes("403") ||
+      e.includes("INVALID_ARGUMENT") ||
+      e.includes("not valid")
   );
 
   const hasQuotaExhausted = allErrors.some(
@@ -102,7 +126,7 @@ export async function generateWithFailover(
 
   if (hasLeakedOrInvalidKey) {
     throw new Error(
-      `⚠️ API Key Gemini Anda tidak valid atau telah diblokir/revoked oleh Google ("Your API key was reported as leaked" / "API key not valid"). Mohon buat API Key baru di https://aistudio.google.com/ lalu perbarui GEMINI_API_KEY_1 di .env.local atau Vercel.`
+      `⚠️ API Key Gemini Anda tidak valid atau telah diblokir/revoked oleh Google ("Your API key was reported as leaked" / "401 Unauthorized"). Mohon buat API Key baru di https://aistudio.google.com/ lalu perbarui GEMINI_API_KEY_1 di .env.local atau Vercel.`
     );
   }
 
