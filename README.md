@@ -7,19 +7,23 @@
 ## 🌟 Key Features & Modules
 
 ### 1. 💬 Real-Time Stealth AI Interview Copilot & Vision OCR (`/copilot`)
-* **OS-Level Screen-Capture Immunity (`setContentProtection(true)`)**: Runs as an invisible desktop overlay visible to your eyes on physical monitor, but **100% INVISIBLE to Google Meet, Zoom, MS Teams, and OBS screen share**.
-* **Multi-Key API Rotation Load Balancer**: Automatically rotates across up to 10 Gemini API keys (`GEMINI_API_KEY_1..10` / `GEMINI_API_KEYS`) with zero-downtime failover on Error 429 / Rate Limitations.
+* **OS-Level Screen-Capture Immunity (`setContentProtection(true)`)**: Runs as an invisible desktop overlay visible to your eyes on a physical monitor, but **100% INVISIBLE to Google Meet, Zoom, MS Teams, and OBS screen share**.
+* **Unlimited Dynamic Multi-Key API Rotation Load Balancer**:
+  * Automatically discovers and maps `GEMINI_API_KEY_1`, `GEMINI_API_KEY_2`, ..., `GEMINI_API_KEY_N` dynamically without arbitrary hardcoded limits.
+  * **401 Unauthorized / Invalid Key Boundary Stop**: Automatically detects when key `#i` returns `401 Unauthorized` or `API key not valid`, stopping further key iterations gracefully without forcing requests to non-existent subsequent keys.
+  * **429 Rate Limit Automatic Failover**: Zero-downtime rotation to the next active key when daily rate limits or quota thresholds are encountered.
 * **Interviewer Question Translation & Core Intent Explanation**: Translates English interviewer questions into natural Indonesian + provides a 1-2 sentence breakdown of what the interviewer is *really* seeking.
 * **Stateful Conversation Memory Stack & Directive #12 Guardrails**: Retains context across turns (A ➔ A.1 ➔ A.B) so the AI never loses parent project context or contradicts earlier statements.
 * **Unlimited Session Memory & End Meeting Simple Recap**: Keeps track of full call duration until candidate clicks **"🏁 Selesai / End Meeting"**, producing a concise Indonesian summary report.
 * **Global Stealth Hotkeys**:
-  * `Alt + Shift + H`: Sembunyikan / Tampilkan Overlay Copilot.
+  * `Alt + Shift + H`: Hide / Show Copilot Overlay.
   * `Alt + Shift + T`: Toggle Click-Through Mouse Pass-Through.
   * `Alt + S`: Instant Screen Snapshot & Gemini Vision OCR (Solves LeetCode/HackerRank code problems on screen).
   * `Alt + L`: Toggle Live Client Audio Listening Mode.
 
 ### 2. 📄 ATS Resume & Cover Letter Generator (`/ats-generate`)
 * **Job Description Tailoring**: Analyzes target Job Descriptions and tailors resume bullets and executive summary using 11 Golden Tailoring Rules.
+* **Dynamic Portfolio Domain Selection**: Auto-classifies and assigns candidate portfolio domain URL between Software Engineering (`https://haidarshahab.vercel.app/`) and Electrical/Industrial Engineering (`https://profile-mhaidarshahab-electrical.netlify.app/`).
 * **Non-Destructive Optimization**: Retains authentic job titles (IFG, PT Bukit Asam Tbk, Pupuk Sriwidjaja) and core technical achievements while weaving domain relevance.
 * **Role Misalignment Confirmation Modal**: Interactive modal alerting candidate if target JD domain differs from Master CV background.
 * **AI Screening Q&A Assistant**: Automatically answers application portal questions framing candidate as a rapid technical adapter.
@@ -74,18 +78,20 @@ my-agent/
 │   └── downloads/
 │       └── run_copilot.bat    # 1-Click Desktop Launcher Script
 ├── src/
-│   └── app/
-│       ├── page.tsx           # Dashboard Homepage Grid
-│       ├── copilot/           # Stealth AI Copilot & Vision OCR UI
-│       ├── ats-generate/      # ATS Generator & PDF Preview UI
-│       ├── history/           # Local Application History CRM UI
-│       ├── interview-prep/    # Mock Interview Q&A UI
-│       ├── video-pipeline/    # Video Storyboard & Teleprompter UI
-│       ├── ai-interview/      # Zoom-Style AI Video Call Room UI
-│       └── api/
-│           ├── copilot/       # Multi-Key Load Balancer & Copilot Engine
-│           ├── generate-ats/  # ATS Tailoring & Puppeteer PDF Route
-│           └── ...
+│   ├── app/
+│   │   ├── page.tsx           # Dashboard Homepage Grid
+│   │   ├── copilot/           # Stealth AI Copilot & Vision OCR UI
+│   │   ├── ats-generate/      # ATS Generator & PDF Preview UI
+│   │   ├── history/           # Local Application History CRM UI
+│   │   ├── interview-prep/    # Mock Interview Q&A UI
+│   │   ├── video-pipeline/    # Video Storyboard & Teleprompter UI
+│   │   ├── ai-interview/      # Zoom-Style AI Video Call Room UI
+│   │   └── api/
+│   │       ├── copilot/       # Multi-Key Load Balancer & Copilot Engine
+│   │       ├── generate-ats/  # ATS Tailoring & Puppeteer PDF Route
+│   │       └── ...
+│   └── utils/
+│       └── geminiFailover.ts  # Unlimited Multi-Key Failover & 401 Boundary Detector
 ├── run_copilot.bat            # 1-Click Desktop Stealth Launcher
 └── package.json
 ```
@@ -105,10 +111,13 @@ Check out our detailed date-stamped git push engineering activity logs in [`docs
 Create a `.env.local` file in the root directory:
 
 ```env
-# Multi-Key Rotation Support (Add up to 10 keys for 0-downtime rate limit failover)
+# Dynamic Unlimited Multi-Key Support (GEMINI_API_KEY_1..N)
 GEMINI_API_KEY_1=your_gemini_api_key_1
 GEMINI_API_KEY_2=your_gemini_api_key_2
-GEMINI_API_KEYS=key1,key2,key3
+GEMINI_API_KEY_3=your_gemini_api_key_3
+
+# Master Resume Decryption Password
+RESUME_PASSWORD=your_secure_password
 ```
 
 ### 2. Desktop Stealth Overlay Launch (1-Click)
