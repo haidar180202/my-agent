@@ -63,8 +63,8 @@ export async function generateWithFailover(
   // Active & verified Gemini Model for current Google GenAI SDK
   const models = [
     options.preferredModel || "gemini-2.5-flash",
-    "gemini-2.5-flash",
     "gemini-3.6-flash",
+    "gemini-3.8-flash",
   ];
 
   const modelList = Array.from(new Set(models));
